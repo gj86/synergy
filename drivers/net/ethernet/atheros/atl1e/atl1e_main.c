@@ -1929,7 +1929,7 @@ static int atl1e_request_irq(struct atl1e_adapter *adapter)
 			   "Unable to allocate interrupt Error: %d\n", err);
 		return err;
 	}
-	netdev_dbg(adapter->netdev, "atl1e_request_irq OK\n");
+	netdev_dbg(netdev, "atl1e_request_irq OK\n");
 	return err;
 }
 
@@ -2259,7 +2259,6 @@ static int atl1e_init_netdev(struct net_device *netdev, struct pci_dev *pdev)
 	SET_NETDEV_DEV(netdev, &pdev->dev);
 	pci_set_drvdata(pdev, netdev);
 
-	netdev->irq  = pdev->irq;
 	netdev->netdev_ops = &atl1e_netdev_ops;
 
 	netdev->watchdog_timeo = AT_TX_WATCHDOG;
@@ -2345,7 +2344,6 @@ static int __devinit atl1e_probe(struct pci_dev *pdev,
 		netdev_err(netdev, "cannot map device registers\n");
 		goto err_ioremap;
 	}
-	netdev->base_addr = (unsigned long)adapter->hw.hw_addr;
 
 	/* init mii data */
 	adapter->mii.dev = netdev;
