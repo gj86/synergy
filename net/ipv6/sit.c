@@ -131,7 +131,7 @@ static struct rtnl_link_stats64 *ipip6_get_stats64(struct net_device *dev,
 /*
  * Must be invoked with rcu_read_lock
  */
-static struct ip_tunnel * ipip6_tunnel_lookup(struct net *net,
+static struct ip_tunnel *ipip6_tunnel_lookup(struct net *net,
 		struct net_device *dev, __be32 remote, __be32 local)
 {
 	unsigned int h0 = HASH(remote);
@@ -709,7 +709,7 @@ static netdev_tx_t ipip6_tunnel_xmit(struct sk_buff *skb,
 			goto tx_error;
 		}
 
-		addr6 = (const struct in6_addr*)&neigh->primary_key;
+		addr6 = (const struct in6_addr *)&neigh->primary_key;
 		addr_type = ipv6_addr_type(addr6);
 
 		if ((addr_type & IPV6_ADDR_UNICAST) &&
@@ -739,7 +739,7 @@ static netdev_tx_t ipip6_tunnel_xmit(struct sk_buff *skb,
 			goto tx_error;
 		}
 
-		addr6 = (const struct in6_addr*)&neigh->primary_key;
+		addr6 = (const struct in6_addr *)&neigh->primary_key;
 		addr_type = ipv6_addr_type(addr6);
 
 		if (addr_type == IPV6_ADDR_ANY) {
