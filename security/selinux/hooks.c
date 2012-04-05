@@ -2223,7 +2223,6 @@ static int match_file(const void *p, struct file *file, unsigned fd)
 static inline void flush_unauthorized_files(const struct cred *cred,
 					    struct files_struct *files)
 {
-	struct common_audit_data ad;
 	struct file *file, *devnull = NULL;
 	struct tty_struct *tty;
 	int drop_tty = 0;
@@ -2254,8 +2253,6 @@ static inline void flush_unauthorized_files(const struct cred *cred,
 		no_tty();
 
 	/* Revalidate access to inherited open files. */
-
-	ad.type = LSM_AUDIT_DATA_INODE;
 
 	n = iterate_fd(files, 0, match_file, cred);
 	if (!n) /* none found? */
