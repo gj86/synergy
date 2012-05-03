@@ -233,11 +233,8 @@ static void requeue_io(struct inode *inode, struct bdi_writeback *wb)
 
 static void inode_sync_complete(struct inode *inode)
 {
-	/*
-	 * Prevent speculative execution through
-	 * spin_unlock(&wb->list_lock);
-	 */
 	inode->i_state &= ~I_SYNC;
+	/* Waiters must see I_SYNC cleared before being woken up */
 	/* If inode is clean an unused, put it into LRU now... */
 	inode_add_lru(inode);
 	smp_mb();
@@ -460,7 +457,6 @@ writeback_single_inode(struct inode *inode, struct bdi_writeback *wb,
 
 	spin_lock(&wb->list_lock);
 	spin_lock(&inode->i_lock);
-	inode->i_state &= ~I_SYNC;
 	if (!(inode->i_state & I_FREEING)) {
 		/*
 		 * Sync livelock prevention. Each inode is tagged and synced in
