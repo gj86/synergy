@@ -135,7 +135,7 @@ int __frontswap_store(struct page *page)
 	BUG_ON(sis == NULL);
 	if (frontswap_test(sis, offset))
 		dup = 1;
-	ret = frontswap_ops.store(type, offset, page);
+	ret = (*frontswap_ops.store)(type, offset, page);
 	if (ret == 0) {
 		frontswap_set(sis, offset);
 		inc_frontswap_succ_stores();
@@ -146,10 +146,11 @@ int __frontswap_store(struct page *page)
 		  failed dup always results in automatic invalidate of
 		  the (older) page from frontswap
 		 */
+		frontswap_clear(sis, offset);
+		atomic_dec(&sis->frontswap_pages);
 		inc_frontswap_failed_stores();
-		if (dup)
-			__frontswap_clear(sis, offset);
-	}
+	} else
+		inc_frontswap_failed_stores();
 	if (frontswap_writethrough_enabled)
 		/* report failure so swap also writes to swap device */
 		ret = -1;
@@ -173,7 +174,7 @@ int __frontswap_load(struct page *page)
 	BUG_ON(!PageLocked(page));
 	BUG_ON(sis == NULL);
 	if (frontswap_test(sis, offset))
-		ret = frontswap_ops.load(type, offset, page);
+		ret = (*frontswap_ops.load)(type, offset, page);
 	if (ret == 0)
 		inc_frontswap_loads();
 	return ret;
