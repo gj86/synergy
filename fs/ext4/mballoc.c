@@ -3108,7 +3108,6 @@ static void ext4_discard_allocated_blocks(struct ext4_allocation_context *ac)
 	struct ext4_prealloc_space *pa = ac->ac_pa;
 	struct ext4_buddy e4b;
 	int err;
-	int len;
 
 	if (pa == NULL) {
 		if (ac->ac_f_ex.fe_len == 0)
@@ -3130,11 +3129,9 @@ static void ext4_discard_allocated_blocks(struct ext4_allocation_context *ac)
 		ext4_mb_unload_buddy(&e4b);
 		return;
 	}
-	if (pa->pa_type == MB_INODE_PA) {
-		len = ac->ac_b_ex.fe_len;
-		pa->pa_free += len;
-	}
 
+	if (pa->pa_type == MB_INODE_PA)
+		pa->pa_free += ac->ac_b_ex.fe_len;
 }
 
 /*
