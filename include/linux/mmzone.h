@@ -221,7 +221,7 @@ struct zone_reclaim_stat {
 struct lruvec {
 	struct list_head lists[NR_LRU_LISTS];
 	struct zone_reclaim_stat reclaim_stat;
-#ifdef CONFIG_CGROUP_MEM_RES_CTLR
+#ifdef CONFIG_MEMCG
 	struct zone *zone;
 #endif
 };
@@ -761,7 +761,7 @@ extern void lruvec_init(struct lruvec *lruvec, struct zone *zone);
 
 static inline struct zone *lruvec_zone(struct lruvec *lruvec)
 {
-#ifdef CONFIG_CGROUP_MEM_RES_CTLR
+#ifdef CONFIG_MEMCG
 	return lruvec->zone;
 #else
 	return container_of(lruvec, struct zone, lruvec);
