@@ -564,12 +564,8 @@ repeat:
 	 * will limit the total number of files that can be opened.
 	 */
 	error = -EMFILE;
-	if (fd >= end) {
-#ifdef CONFIG_SEC_FILE_LEAK_DEBUG
-		sec_debug_EMFILE_error_proc((unsigned long)files);
-#endif
+	if (fd >= end)
 		goto out;
-	}
 
 	error = expand_files(files, fd);
 	if (error < 0)

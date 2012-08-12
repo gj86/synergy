@@ -67,12 +67,8 @@ SYSCALL_DEFINE3(dup3, unsigned int, oldfd, unsigned int, newfd, int, flags)
 	if (unlikely(oldfd == newfd))
 		return -EINVAL;
 
-	if (newfd >= rlimit(RLIMIT_NOFILE)) {
-#ifdef CONFIG_SEC_FILE_LEAK_DEBUG
-		sec_debug_EMFILE_error_proc((unsigned long)files);
-#endif
+	if (newfd >= rlimit(RLIMIT_NOFILE))
 		return -EMFILE;
-	}
 
 	spin_lock(&files->file_lock);
 	err = expand_files(files, newfd);
