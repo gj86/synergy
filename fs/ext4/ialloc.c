@@ -701,10 +701,20 @@ got_group:
 		if (!gdp)
 			goto fail;
 
+		/*
+		 * Check free inodes count before loading bitmap.
+		 */
+		if (ext4_free_inodes_count(sb, gdp) == 0) {
+			if (++group == ngroups)
+				group = 0;
+			continue;
+		}
+
 		if (inode_bitmap_bh) {
 			ext4_handle_release_buffer(handle, inode_bitmap_bh);
 			brelse(inode_bitmap_bh);
 		}
+
 		inode_bitmap_bh = ext4_read_inode_bitmap(sb, group);
 		if (!inode_bitmap_bh)
 			goto fail;
