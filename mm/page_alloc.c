@@ -709,6 +709,10 @@ static void free_pcppages_bulk(struct zone *zone, int count,
 
 		do {
 			int mt; /* migratetype of the to-be-freed page */
+			page = list_entry(list->prev, struct page, lru);
+			mt = get_pageblock_migratetype(page);
+			if (likely(mt != MIGRATE_ISOLATE))
+				mt = get_freepage_migratetype(page);
 
 			page = list_entry(list->prev, struct page, lru);
 			/* must delete as __free_one_page list manipulates */
