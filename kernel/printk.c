@@ -42,7 +42,6 @@
 #include <linux/notifier.h>
 #include <linux/rculist.h>
 #include <linux/irq_work.h>
-#include <linux/utsname.h>
 
 #include <asm/uaccess.h>
 #ifdef CONFIG_SEC_DEBUG
