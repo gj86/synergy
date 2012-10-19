@@ -117,7 +117,6 @@ void irq_work_run(void)
 	__this_cpu_write(irq_work_raised, 0);
 	barrier();
 
-
 	this_list = &__get_cpu_var(irq_work_list);
 	if (llist_empty(this_list))
 		return;
@@ -137,7 +136,6 @@ void irq_work_run(void)
 		 */
 		flags = work->flags & ~IRQ_WORK_PENDING;
 		work->flags = flags;
-
 
 		work->func(work);
 		/*
