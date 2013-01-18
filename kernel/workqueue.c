@@ -44,8 +44,8 @@
 #include <linux/hashtable.h>
 #include <linux/bug.h>
 #include <linux/moduleparam.h>
+#include "workqueue_internal.h"
 
-#include "workqueue_sched.h"
 #ifdef CONFIG_SEC_DEBUG
 #include <mach/sec_debug.h>
 #endif
