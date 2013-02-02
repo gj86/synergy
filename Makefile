@@ -406,22 +406,37 @@ LINUXINCLUDE    := -I$(srctree)/arch/$(hdr-arch)/include \
 KBUILD_CPPFLAGS := -D__KERNEL__
 
 KBUILD_CFLAGS   := -Wall -Wundef -Wstrict-prototypes -Wno-trigraphs \
-		   -fno-strict-aliasing -fno-common \
+		   -fno-strict-aliasing \
 		   -fomit-frame-pointer \
-		   -Werror-implicit-function-declaration \
-		   -Wno-format-security \
+		   -fno-common \
 		   -fno-delete-null-pointer-checks \
-		   -fmodulo-sched -fmodulo-sched-allow-regmoves -fno-tree-vectorize -ffast-math \
-		   -funswitch-loops -fpredictive-commoning -fgcse-after-reload \
+		   -fmodulo-sched \
+		   -fmodulo-sched-allow-regmoves \
+		   -fno-tree-vectorize \
+		   -ffast-math \
+		   -funswitch-loops \
+		   -fpredictive-commoning \
+		   -fgcse-after-reload \
+   		   -Werror-implicit-function-declaration \
+		   -Wno-format-security \
 		   -Wno-sizeof-pointer-memaccess \
 		   -Wpsabi \
-		   -Wno-bool-compare -Wno-logical-not-parentheses -Wno-incompatible-pointer-types \
-		   -Wno-tautological-compare -Wno-unused-const-variable \
-		   -Wno-misleading-indentation \
+		   -Wno-parentheses \
+		   -Wno-format-overflow \
+		   -Wno-stringop-overflow \
+		   -Wno-switch-unreachable \
+		   -Wno-int-in-bool-context \
+		   -Wno-bool-operation \
+		   -Wno-memset-elt-size \
+		   -Wno-duplicate-decl-specifier \
+		   -Wno-format-truncation \
 		   -Wno-pointer-compare \
-		   -Wno-format-truncation -Wno-duplicate-decl-specifier -Wno-memset-elt-size \
-		   -Wno-bool-operation -Wno-int-in-bool-context -Wno-parentheses \
-		   -Wno-switch-unreachable -Wno-stringop-overflow -Wno-format-overflow \
+		   -Wno-misleading-indentation \
+		   -Wno-unused-const-variable \
+		   -Wno-tautological-compare \
+		   -Wno-incompatible-pointer-types \
+		   -Wno-logical-not-parentheses \
+		   -Wno-bool-compare \
 		   $(FAST_LANE_OPT_FLAGS) \
 		   -std=gnu89
 
