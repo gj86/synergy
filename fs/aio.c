@@ -153,9 +153,8 @@ static int aio_setup_ring(struct kioctx *ctx)
 	struct aio_ring *ring;
 	unsigned nr_events = ctx->max_reqs;
 	struct mm_struct *mm = current->mm;
-	unsigned long size;
+	unsigned long size, populate;
 	int nr_pages;
-	bool populate;
 
 	if (current->personality & READ_IMPLIES_EXEC)
 		return -EPERM;
@@ -205,7 +204,7 @@ static int aio_setup_ring(struct kioctx *ctx)
 		return -EAGAIN;
 	}
 	if (populate)
-		mm_populate(info->mmap_base, info->mmap_size);
+		mm_populate(info->mmap_base, populate);
 
 	ctx->user_id = ctx->mmap_base;
 	ctx->nr_events = nr_events; /* trusted copy */
