@@ -3704,13 +3704,8 @@ static int __zone_reclaim(struct zone *zone, gfp_t gfp_mask, unsigned int order)
 	struct scan_control sc = {
 		.may_writepage = !!(zone_reclaim_mode & RECLAIM_WRITE),
 		.may_unmap = !!(zone_reclaim_mode & RECLAIM_SWAP),
-#ifdef CONFIG_RUNTIME_COMPCACHE
-		.may_swap = 0,
-#else
 		.may_swap = 1,
-#endif /* CONFIG_RUNTIME_COMPCACHE */
-		.nr_to_reclaim = max_t(unsigned long, nr_pages,
-				       SWAP_CLUSTER_MAX),
+		.nr_to_reclaim = max(nr_pages, SWAP_CLUSTER_MAX),
 		.gfp_mask = gfp_mask,
 		.order = order,
 		.swappiness = vm_swappiness,
