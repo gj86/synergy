@@ -292,8 +292,11 @@ static int create_cache(struct zs_pool *pool)
 
 static void destroy_cache(struct zs_pool *pool)
 {
-	kmem_cache_destroy(pool->handle_cachep);
-	kmem_cache_destroy(pool->zspage_cachep);
+	if (pool->handle_cachep)
+		kmem_cache_destroy(pool->handle_cachep);
+
+	if (pool->zspage_cachep)
+		kmem_cache_destroy(pool->zspage_cachep);
 }
 
 static unsigned long cache_alloc_handle(struct zs_pool *pool, gfp_t gfp)
@@ -1051,7 +1054,7 @@ static inline void __zs_cpu_down(struct mapping_area *area)
 static inline void *__zs_map_object(struct mapping_area *area,
 				struct page *pages[2], int off, int size)
 {
-	BUG_ON(map_vm_area(area->vm, PAGE_KERNEL, pages));
+	BUG_ON(map_vm_area(area->vm, PAGE_KERNEL, &pages));
 	area->vm_addr = area->vm->addr;
 	return area->vm_addr + off;
 }

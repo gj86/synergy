@@ -431,7 +431,7 @@ static int lowmem_shrink(struct shrinker *s, struct shrink_control *sc)
 		other_file = global_page_state(NR_FILE_PAGES) + zcache_pages() -
 						global_page_state(NR_SHMEM) -
 						global_page_state(NR_UNEVICTABLE) -
-						total_swapcache_pages;
+						total_swapcache_pages();
 	else
 		other_file = 0;
 
