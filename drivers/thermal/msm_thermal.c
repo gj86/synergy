@@ -55,6 +55,7 @@ static struct delayed_work check_temp_work;
 #ifdef CONFIG_THERMAL_MONITOR_LOG
 static struct delayed_work temp_log_work;
 #endif
+bool core_control;
 static bool core_control_enabled;
 static uint32_t cpus_offlined;
 static DEFINE_MUTEX(core_control_mutex);
@@ -2014,6 +2015,7 @@ static ssize_t __ref store_cc_enabled(struct kobject *kobj,
 		goto done_store_cc;
 
 	core_control_enabled = !!val;
+	core_control = core_control_enabled;
 	if (core_control_enabled) {
 		pr_info("Core control enabled\n");
 		register_cpu_notifier(&msm_thermal_cpu_notifier);
@@ -3003,6 +3005,7 @@ static int probe_cc(struct device_node *node, struct msm_thermal_data *data,
 	if (num_possible_cpus() > 1) {
 		core_control_enabled = 1;
 		hotplug_enabled = 1;
+		core_control = core_control_enabled;
 	}
 
 	key = "qcom,core-limit-temp";
