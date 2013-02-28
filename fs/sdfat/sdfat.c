@@ -737,12 +737,11 @@ static struct inode *sdfat_iget(struct super_block *sb, loff_t i_pos)
 {
 	struct sdfat_sb_info *sbi = SDFAT_SB(sb);
 	struct sdfat_inode_info *info;
-	struct hlist_node *node;
 	struct hlist_head *head = sbi->inode_hashtable + sdfat_hash(i_pos);
 	struct inode *inode = NULL;
 
 	spin_lock(&sbi->inode_hash_lock);
-	hlist_for_each_entry(info, node, head, i_hash_fat) {
+	hlist_for_each_entry(info, head, i_hash_fat) {
 		BUG_ON(info->vfs_inode.i_sb != sb);
 
 		if (i_pos != info->i_pos)

@@ -111,14 +111,13 @@ void gw_deselect(struct bat_priv *bat_priv)
 static struct gw_node *gw_get_best_gw_node(struct bat_priv *bat_priv)
 {
 	struct neigh_node *router;
-	struct hlist_node *node;
 	struct gw_node *gw_node, *curr_gw = NULL;
 	uint32_t max_gw_factor = 0, tmp_gw_factor = 0;
 	uint8_t max_tq = 0;
 	int down, up;
 
 	rcu_read_lock();
-	hlist_for_each_entry_rcu(gw_node, node, &bat_priv->gw_list, list) {
+	hlist_for_each_entry_rcu(gw_node, &bat_priv->gw_list, list) {
 		if (gw_node->deleted)
 			continue;
 
@@ -331,7 +330,6 @@ static void gw_node_add(struct bat_priv *bat_priv,
 void gw_node_update(struct bat_priv *bat_priv,
 		    struct orig_node *orig_node, uint8_t new_gwflags)
 {
-	struct hlist_node *node;
 	struct gw_node *gw_node, *curr_gw;
 
 	/**
@@ -343,7 +341,7 @@ void gw_node_update(struct bat_priv *bat_priv,
 	curr_gw = gw_get_selected_gw_node(bat_priv);
 
 	rcu_read_lock();
-	hlist_for_each_entry_rcu(gw_node, node, &bat_priv->gw_list, list) {
+	hlist_for_each_entry_rcu(gw_node, &bat_priv->gw_list, list) {
 		if (gw_node->orig_node != orig_node)
 			continue;
 
@@ -390,7 +388,7 @@ void gw_node_delete(struct bat_priv *bat_priv, struct orig_node *orig_node)
 void gw_node_purge(struct bat_priv *bat_priv)
 {
 	struct gw_node *gw_node, *curr_gw;
-	struct hlist_node *node, *node_tmp;
+	struct hlist_node *node_tmp;
 	unsigned long timeout = msecs_to_jiffies(2 * PURGE_TIMEOUT);
 	int do_deselect = 0;
 
@@ -398,7 +396,7 @@ void gw_node_purge(struct bat_priv *bat_priv)
 
 	spin_lock_bh(&bat_priv->gw_list_lock);
 
-	hlist_for_each_entry_safe(gw_node, node, node_tmp,
+	hlist_for_each_entry_safe(gw_node, node_tmp,
 				  &bat_priv->gw_list, list) {
 		if (((!gw_node->deleted) ||
 		     (time_before(jiffies, gw_node->deleted + timeout))) &&
@@ -464,7 +462,6 @@ int gw_client_seq_print_text(struct seq_file *seq, void *offset)
 	struct bat_priv *bat_priv = netdev_priv(net_dev);
 	struct hard_iface *primary_if;
 	struct gw_node *gw_node;
-	struct hlist_node *node;
 	int gw_count = 0, ret = 0;
 
 	primary_if = primary_if_get_selected(bat_priv);
@@ -489,7 +486,7 @@ int gw_client_seq_print_text(struct seq_file *seq, void *offset)
 		   primary_if->net_dev->dev_addr, net_dev->name);
 
 	rcu_read_lock();
-	hlist_for_each_entry_rcu(gw_node, node, &bat_priv->gw_list, list) {
+	hlist_for_each_entry_rcu(gw_node, &bat_priv->gw_list, list) {
 		if (gw_node->deleted)
 			continue;
 

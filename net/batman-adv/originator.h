@@ -66,7 +66,6 @@ static inline struct orig_node *orig_hash_find(struct bat_priv *bat_priv,
 {
 	struct hashtable_t *hash = bat_priv->orig_hash;
 	struct hlist_head *head;
-	struct hlist_node *node;
 	struct orig_node *orig_node, *orig_node_tmp = NULL;
 	int index;
 
@@ -77,7 +76,7 @@ static inline struct orig_node *orig_hash_find(struct bat_priv *bat_priv,
 	head = &hash->table[index];
 
 	rcu_read_lock();
-	hlist_for_each_entry_rcu(orig_node, node, head, hash_entry) {
+	hlist_for_each_entry_rcu(orig_node, head, hash_entry) {
 		if (!compare_eth(orig_node, data))
 			continue;
 

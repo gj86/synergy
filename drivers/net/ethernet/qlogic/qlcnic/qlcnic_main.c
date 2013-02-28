@@ -1936,7 +1936,7 @@ qlcnic_send_filter(struct qlcnic_adapter *adapter,
 {
 	struct ethhdr *phdr = (struct ethhdr *)(skb->data);
 	struct qlcnic_filter *fil, *tmp_fil;
-	struct hlist_node *tmp_hnode, *n;
+	struct hlist_node *n;
 	struct hlist_head *head;
 	u64 src_addr = 0;
 	__le16 vlan_id = 0;
@@ -1955,7 +1955,7 @@ qlcnic_send_filter(struct qlcnic_adapter *adapter,
 	hindex = QLCNIC_MAC_HASH(src_addr) & (QLCNIC_LB_MAX_FILTERS - 1);
 	head = &(adapter->fhash.fhead[hindex]);
 
-	hlist_for_each_entry_safe(tmp_fil, tmp_hnode, n, head, fnode) {
+	hlist_for_each_entry_safe(tmp_fil, n, head, fnode) {
 		if (!memcmp(tmp_fil->faddr, &src_addr, ETH_ALEN) &&
 			    tmp_fil->vlan_id == vlan_id) {
 
