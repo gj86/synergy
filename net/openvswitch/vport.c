@@ -84,9 +84,8 @@ struct vport *ovs_vport_locate(const char *name)
 {
 	struct hlist_head *bucket = hash_bucket(name);
 	struct vport *vport;
-	struct hlist_node *node;
 
-	hlist_for_each_entry_rcu(vport, node, bucket, hash_node)
+	hlist_for_each_entry_rcu(vport, bucket, hash_node)
 		if (!strcmp(name, vport->ops->get_name(vport)))
 			return vport;
 

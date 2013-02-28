@@ -235,12 +235,11 @@ static struct hlist_head *lc_hash_slot(struct lru_cache *lc, unsigned int enr)
  */
 struct lc_element *lc_find(struct lru_cache *lc, unsigned int enr)
 {
-	struct hlist_node *n;
 	struct lc_element *e;
 
 	BUG_ON(!lc);
 	BUG_ON(!lc->nr_elements);
-	hlist_for_each_entry(e, n, lc_hash_slot(lc, enr), colision) {
+	hlist_for_each_entry(e, lc_hash_slot(lc, enr), colision) {
 		if (e->lc_number == enr)
 			return e;
 	}

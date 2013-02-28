@@ -83,14 +83,14 @@ static void softif_neigh_vid_free_rcu(struct rcu_head *rcu)
 {
 	struct softif_neigh_vid *softif_neigh_vid;
 	struct softif_neigh *softif_neigh;
-	struct hlist_node *node, *node_tmp;
+	struct hlist_node *node_tmp;
 	struct bat_priv *bat_priv;
 
 	softif_neigh_vid = container_of(rcu, struct softif_neigh_vid, rcu);
 	bat_priv = softif_neigh_vid->bat_priv;
 
 	spin_lock_bh(&bat_priv->softif_neigh_lock);
-	hlist_for_each_entry_safe(softif_neigh, node, node_tmp,
+	hlist_for_each_entry_safe(softif_neigh, node_tmp,
 				  &softif_neigh_vid->softif_neigh_list, list) {
 		hlist_del_rcu(&softif_neigh->list);
 		softif_neigh_free_ref(softif_neigh);
@@ -110,10 +110,9 @@ static struct softif_neigh_vid *softif_neigh_vid_get(struct bat_priv *bat_priv,
 						     short vid)
 {
 	struct softif_neigh_vid *softif_neigh_vid;
-	struct hlist_node *node;
 
 	rcu_read_lock();
-	hlist_for_each_entry_rcu(softif_neigh_vid, node,
+	hlist_for_each_entry_rcu(softif_neigh_vid,
 				 &bat_priv->softif_neigh_vids, list) {
 		if (softif_neigh_vid->vid != vid)
 			continue;
@@ -150,14 +149,13 @@ static struct softif_neigh *softif_neigh_get(struct bat_priv *bat_priv,
 {
 	struct softif_neigh_vid *softif_neigh_vid;
 	struct softif_neigh *softif_neigh = NULL;
-	struct hlist_node *node;
 
 	softif_neigh_vid = softif_neigh_vid_get(bat_priv, vid);
 	if (!softif_neigh_vid)
 		goto out;
 
 	rcu_read_lock();
-	hlist_for_each_entry_rcu(softif_neigh, node,
+	hlist_for_each_entry_rcu(softif_neigh,
 				 &softif_neigh_vid->softif_neigh_list,
 				 list) {
 		if (!compare_eth(softif_neigh->addr, addr))
@@ -275,7 +273,6 @@ static void softif_neigh_vid_deselect(struct bat_priv *bat_priv,
 	struct softif_neigh *curr_neigh;
 	struct softif_neigh *softif_neigh = NULL, *softif_neigh_tmp;
 	struct hard_iface *primary_if = NULL;
-	struct hlist_node *node;
 
 	primary_if = primary_if_get_selected(bat_priv);
 	if (!primary_if)
@@ -285,7 +282,7 @@ static void softif_neigh_vid_deselect(struct bat_priv *bat_priv,
 	rcu_read_lock();
 	curr_neigh = rcu_dereference(softif_neigh_vid->softif_neigh);
 
-	hlist_for_each_entry_rcu(softif_neigh_tmp, node,
+	hlist_for_each_entry_rcu(softif_neigh_tmp,
 				 &softif_neigh_vid->softif_neigh_list,
 				 list) {
 		if (softif_neigh_tmp == curr_neigh)
@@ -321,7 +318,6 @@ int softif_neigh_seq_print_text(struct seq_file *seq, void *offset)
 	struct softif_neigh_vid *softif_neigh_vid;
 	struct softif_neigh *softif_neigh;
 	struct hard_iface *primary_if;
-	struct hlist_node *node, *node_tmp;
 	struct softif_neigh *curr_softif_neigh;
 	int ret = 0, last_seen_secs, last_seen_msecs;
 
@@ -343,14 +339,14 @@ int softif_neigh_seq_print_text(struct seq_file *seq, void *offset)
 	seq_printf(seq, "Softif neighbor list (%s)\n", net_dev->name);
 
 	rcu_read_lock();
-	hlist_for_each_entry_rcu(softif_neigh_vid, node,
+	hlist_for_each_entry_rcu(softif_neigh_vid,
 				 &bat_priv->softif_neigh_vids, list) {
 		seq_printf(seq, "     %-15s %s on vid: %d\n",
 			   "Originator", "last-seen", softif_neigh_vid->vid);
 
 		curr_softif_neigh = softif_neigh_get_selected(softif_neigh_vid);
 
-		hlist_for_each_entry_rcu(softif_neigh, node_tmp,
+		hlist_for_each_entry_rcu(softif_neigh,
 					 &softif_neigh_vid->softif_neigh_list,
 					 list) {
 			last_seen_secs = jiffies_to_msecs(jiffies -
@@ -380,11 +376,11 @@ void softif_neigh_purge(struct bat_priv *bat_priv)
 {
 	struct softif_neigh *softif_neigh, *curr_softif_neigh;
 	struct softif_neigh_vid *softif_neigh_vid;
-	struct hlist_node *node, *node_tmp, *node_tmp2;
+	struct hlist_node *node, *node_tmp2;
 	int do_deselect;
 
 	rcu_read_lock();
-	hlist_for_each_entry_rcu(softif_neigh_vid, node,
+	hlist_for_each_entry_rcu(softif_neigh_vid,
 				 &bat_priv->softif_neigh_vids, list) {
 		if (!atomic_inc_not_zero(&softif_neigh_vid->refcount))
 			continue;
@@ -393,7 +389,7 @@ void softif_neigh_purge(struct bat_priv *bat_priv)
 		do_deselect = 0;
 
 		spin_lock_bh(&bat_priv->softif_neigh_lock);
-		hlist_for_each_entry_safe(softif_neigh, node_tmp, node_tmp2,
+		hlist_for_each_entry_safe(softif_neigh, node_tmp2,
 					  &softif_neigh_vid->softif_neigh_list,
 					  list) {
 			if ((!has_timed_out(softif_neigh->last_seen,
@@ -427,7 +423,7 @@ void softif_neigh_purge(struct bat_priv *bat_priv)
 	rcu_read_unlock();
 
 	spin_lock_bh(&bat_priv->softif_neigh_vid_lock);
-	hlist_for_each_entry_safe(softif_neigh_vid, node, node_tmp,
+	hlist_for_each_entry_safe(softif_neigh_vid, node,
 				  &bat_priv->softif_neigh_vids, list) {
 		if (!hlist_empty(&softif_neigh_vid->softif_neigh_list))
 			continue;

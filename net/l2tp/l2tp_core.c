@@ -170,10 +170,9 @@ static struct l2tp_session *l2tp_session_find_2(struct net *net, u32 session_id)
 	struct hlist_head *session_list =
 		l2tp_session_id_hash_2(pn, session_id);
 	struct l2tp_session *session;
-	struct hlist_node *walk;
 
 	rcu_read_lock_bh();
-	hlist_for_each_entry_rcu(session, walk, session_list, global_hlist) {
+	hlist_for_each_entry_rcu(session, session_list, global_hlist) {
 		if (session->session_id == session_id) {
 			rcu_read_unlock_bh();
 			return session;
@@ -202,7 +201,6 @@ struct l2tp_session *l2tp_session_find(struct net *net, struct l2tp_tunnel *tunn
 {
 	struct hlist_head *session_list;
 	struct l2tp_session *session;
-	struct hlist_node *walk;
 
 	/* In L2TPv3, session_ids are unique over all tunnels and we
 	 * sometimes need to look them up before we know the
@@ -213,7 +211,7 @@ struct l2tp_session *l2tp_session_find(struct net *net, struct l2tp_tunnel *tunn
 
 	session_list = l2tp_session_id_hash(tunnel, session_id);
 	read_lock_bh(&tunnel->hlist_lock);
-	hlist_for_each_entry(session, walk, session_list, hlist) {
+	hlist_for_each_entry(session, session_list, hlist) {
 		if (session->session_id == session_id) {
 			read_unlock_bh(&tunnel->hlist_lock);
 			return session;
@@ -234,7 +232,6 @@ struct l2tp_session *l2tp_session_get(struct net *net,
 {
 	struct hlist_head *session_list;
 	struct l2tp_session *session;
-	struct hlist_node *walk;
 
 	if (!tunnel) {
 		struct l2tp_net *pn = l2tp_pernet(net);
@@ -242,7 +239,7 @@ struct l2tp_session *l2tp_session_get(struct net *net,
 		session_list = l2tp_session_id_hash_2(pn, session_id);
 
 		rcu_read_lock_bh();
-		hlist_for_each_entry_rcu(session, walk, session_list, global_hlist) {
+		hlist_for_each_entry_rcu(session, session_list, global_hlist) {
 			if (session->session_id == session_id) {
 				l2tp_session_inc_refcount(session);
 				if (do_ref && session->ref)
@@ -259,7 +256,7 @@ struct l2tp_session *l2tp_session_get(struct net *net,
 
 	session_list = l2tp_session_id_hash(tunnel, session_id);
 	read_lock_bh(&tunnel->hlist_lock);
-	hlist_for_each_entry(session, walk, session_list, hlist) {
+	hlist_for_each_entry(session, session_list, hlist) {
 		if (session->session_id == session_id) {
 			l2tp_session_inc_refcount(session);
 			if (do_ref && session->ref)
@@ -278,13 +275,12 @@ EXPORT_SYMBOL_GPL(l2tp_session_get);
 struct l2tp_session *l2tp_session_find_nth(struct l2tp_tunnel *tunnel, int nth)
 {
 	int hash;
-	struct hlist_node *walk;
 	struct l2tp_session *session;
 	int count = 0;
 
 	read_lock_bh(&tunnel->hlist_lock);
 	for (hash = 0; hash < L2TP_HASH_SIZE; hash++) {
-		hlist_for_each_entry(session, walk, &tunnel->session_hlist[hash], hlist) {
+		hlist_for_each_entry(session, &tunnel->session_hlist[hash], hlist) {
 			if (++count > nth) {
 				read_unlock_bh(&tunnel->hlist_lock);
 				return session;
@@ -305,12 +301,11 @@ struct l2tp_session *l2tp_session_find_by_ifname(struct net *net, char *ifname)
 {
 	struct l2tp_net *pn = l2tp_pernet(net);
 	int hash;
-	struct hlist_node *walk;
 	struct l2tp_session *session;
 
 	rcu_read_lock_bh();
 	for (hash = 0; hash < L2TP_HASH_SIZE_2; hash++) {
-		hlist_for_each_entry_rcu(session, walk, &pn->l2tp_session_hlist[hash], global_hlist) {
+		hlist_for_each_entry_rcu(session, &pn->l2tp_session_hlist[hash], global_hlist) {
 			if (!strcmp(session->ifname, ifname)) {
 				rcu_read_unlock_bh();
 				return session;
@@ -331,7 +326,6 @@ static int l2tp_session_add_to_tunnel(struct l2tp_tunnel *tunnel,
 	struct hlist_head *g_head;
 	struct hlist_head *head;
 	struct l2tp_net *pn;
-	struct hlist_node *walk;
 	int err;
 
 	head = l2tp_session_id_hash(tunnel, session->session_id);
@@ -342,7 +336,7 @@ static int l2tp_session_add_to_tunnel(struct l2tp_tunnel *tunnel,
 		goto err_tlock;
 	}
 
-	hlist_for_each_entry(session_walk, walk, head, hlist)
+	hlist_for_each_entry(session_walk, head, hlist)
 		if (session_walk->session_id == session->session_id) {
 			err = -EEXIST;
 			goto err_tlock;
@@ -355,7 +349,7 @@ static int l2tp_session_add_to_tunnel(struct l2tp_tunnel *tunnel,
 
 		spin_lock_bh(&pn->l2tp_session_hlist_lock);
 
-		hlist_for_each_entry(session_walk, walk, g_head, global_hlist)
+		hlist_for_each_entry(session_walk, g_head, global_hlist)
 			if (session_walk->session_id == session->session_id) {
 				err = -EEXIST;
 				goto err_tlock_pnlock;

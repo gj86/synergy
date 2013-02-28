@@ -228,7 +228,7 @@ static int pfkey_broadcast(struct sk_buff *skb,
 		return -ENOMEM;
 
 	rcu_read_lock();
-	sk_for_each_rcu(sk, node, &net_pfkey->table) {
+	sk_for_each_rcu(sk, &net_pfkey->table) {
 		struct pfkey_sock *pfk = pfkey_sk(sk);
 		int err2;
 

@@ -409,7 +409,6 @@ static void bat_iv_ogm_queue_add(struct bat_priv *bat_priv,
 	 * _pos -> pointer to the position in the queue
 	 */
 	struct forw_packet *forw_packet_aggr = NULL, *forw_packet_pos = NULL;
-	struct hlist_node *tmp_node;
 	struct batman_ogm_packet *batman_ogm_packet;
 	bool direct_link;
 
@@ -420,7 +419,7 @@ static void bat_iv_ogm_queue_add(struct bat_priv *bat_priv,
 	spin_lock_bh(&bat_priv->forw_bat_list_lock);
 	/* own packets are not to be aggregated */
 	if ((atomic_read(&bat_priv->aggregated_ogms)) && (!own_packet)) {
-		hlist_for_each_entry(forw_packet_pos, tmp_node,
+		hlist_for_each_entry(forw_packet_pos,
 				     &bat_priv->forw_bat_list, list) {
 			if (bat_iv_ogm_can_aggregate(batman_ogm_packet,
 						     bat_priv, packet_len,
@@ -582,14 +581,13 @@ static void bat_iv_ogm_orig_update(struct bat_priv *bat_priv,
 	struct neigh_node *neigh_node = NULL, *tmp_neigh_node = NULL;
 	struct neigh_node *router = NULL;
 	struct orig_node *orig_node_tmp;
-	struct hlist_node *node;
 	uint8_t bcast_own_sum_orig, bcast_own_sum_neigh;
 
 	bat_dbg(DBG_BATMAN, bat_priv,
 		"update_originator(): Searching and updating originator entry of received packet\n");
 
 	rcu_read_lock();
-	hlist_for_each_entry_rcu(tmp_neigh_node, node,
+	hlist_for_each_entry_rcu(tmp_neigh_node,
 				 &orig_node->neigh_list, list) {
 		if (compare_eth(tmp_neigh_node->addr, ethhdr->h_source) &&
 		    (tmp_neigh_node->if_incoming == if_incoming) &&
@@ -719,14 +717,13 @@ static int bat_iv_ogm_calc_tq(struct orig_node *orig_node,
 {
 	struct bat_priv *bat_priv = netdev_priv(if_incoming->soft_iface);
 	struct neigh_node *neigh_node = NULL, *tmp_neigh_node;
-	struct hlist_node *node;
 	uint8_t total_count;
 	uint8_t orig_eq_count, neigh_rq_count, tq_own;
 	int tq_asym_penalty, ret = 0;
 
 	/* find corresponding one hop neighbor */
 	rcu_read_lock();
-	hlist_for_each_entry_rcu(tmp_neigh_node, node,
+	hlist_for_each_entry_rcu(tmp_neigh_node,
 				 &orig_neigh_node->neigh_list, list) {
 
 		if (!compare_eth(tmp_neigh_node->addr, orig_neigh_node->orig))
@@ -828,7 +825,6 @@ static int bat_iv_ogm_update_seqnos(const struct ethhdr *ethhdr,
 	struct bat_priv *bat_priv = netdev_priv(if_incoming->soft_iface);
 	struct orig_node *orig_node;
 	struct neigh_node *tmp_neigh_node;
-	struct hlist_node *node;
 	int is_duplicate = 0;
 	int32_t seq_diff;
 	int need_update = 0;
@@ -847,7 +843,7 @@ static int bat_iv_ogm_update_seqnos(const struct ethhdr *ethhdr,
 		goto out;
 
 	rcu_read_lock();
-	hlist_for_each_entry_rcu(tmp_neigh_node, node,
+	hlist_for_each_entry_rcu(tmp_neigh_node,
 				 &orig_node->neigh_list, list) {
 
 		is_duplicate |= get_bit_status(tmp_neigh_node->real_bits,

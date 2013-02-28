@@ -253,10 +253,9 @@ static inline struct drbd_request *_ar_id_to_req(struct drbd_conf *mdev,
 	u64 id, sector_t sector)
 {
 	struct hlist_head *slot = ar_hash_slot(mdev, sector);
-	struct hlist_node *n;
 	struct drbd_request *req;
 
-	hlist_for_each_entry(req, n, slot, collision) {
+	hlist_for_each_entry(req, slot, collision) {
 		if ((unsigned long)req == (unsigned long)id) {
 			D_ASSERT(req->sector == sector);
 			return req;

@@ -181,9 +181,8 @@ int is_my_mac(const uint8_t *addr)
 static struct bat_algo_ops *bat_algo_get(char *name)
 {
 	struct bat_algo_ops *bat_algo_ops = NULL, *bat_algo_ops_tmp;
-	struct hlist_node *node;
 
-	hlist_for_each_entry(bat_algo_ops_tmp, node, &bat_algo_list, list) {
+	hlist_for_each_entry(bat_algo_ops_tmp, &bat_algo_list, list) {
 		if (strcmp(bat_algo_ops_tmp->name, name) != 0)
 			continue;
 
@@ -245,11 +244,10 @@ out:
 int bat_algo_seq_print_text(struct seq_file *seq, void *offset)
 {
 	struct bat_algo_ops *bat_algo_ops;
-	struct hlist_node *node;
 
 	seq_printf(seq, "Available routing algorithms:\n");
 
-	hlist_for_each_entry(bat_algo_ops, node, &bat_algo_list, list) {
+	hlist_for_each_entry(bat_algo_ops, &bat_algo_list, list) {
 		seq_printf(seq, "%s\n", bat_algo_ops->name);
 	}
 

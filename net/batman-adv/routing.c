@@ -34,7 +34,6 @@ void slide_own_bcast_window(struct hard_iface *hard_iface)
 {
 	struct bat_priv *bat_priv = netdev_priv(hard_iface->soft_iface);
 	struct hashtable_t *hash = bat_priv->orig_hash;
-	struct hlist_node *node;
 	struct hlist_head *head;
 	struct orig_node *orig_node;
 	unsigned long *word;
@@ -45,7 +44,7 @@ void slide_own_bcast_window(struct hard_iface *hard_iface)
 		head = &hash->table[i];
 
 		rcu_read_lock();
-		hlist_for_each_entry_rcu(orig_node, node, head, hash_entry) {
+		hlist_for_each_entry_rcu(orig_node, head, hash_entry) {
 			spin_lock_bh(&orig_node->ogm_cnt_lock);
 			word_index = hard_iface->if_num * NUM_WORDS;
 			word = &(orig_node->bcast_own[word_index]);
@@ -142,7 +141,6 @@ out:
 void bonding_candidate_add(struct orig_node *orig_node,
 			   struct neigh_node *neigh_node)
 {
-	struct hlist_node *node;
 	struct neigh_node *tmp_neigh_node, *router = NULL;
 	uint8_t interference_candidate = 0;
 
@@ -166,7 +164,7 @@ void bonding_candidate_add(struct orig_node *orig_node,
 	 * interface. If we do, we won't select this candidate because of
 	 * possible interference.
 	 */
-	hlist_for_each_entry_rcu(tmp_neigh_node, node,
+	hlist_for_each_entry_rcu(tmp_neigh_node,
 				 &orig_node->neigh_list, list) {
 
 		if (tmp_neigh_node == neigh_node)

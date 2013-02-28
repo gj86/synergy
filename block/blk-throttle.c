@@ -866,7 +866,7 @@ static int throtl_select_dispatch(struct throtl_data *td, struct bio_list *bl)
 static void throtl_process_limit_change(struct throtl_data *td)
 {
 	struct throtl_grp *tg;
-	struct hlist_node *pos, *n;
+	struct hlist_node *n;
 
 	if (!td->limits_changed)
 		return;
@@ -875,7 +875,7 @@ static void throtl_process_limit_change(struct throtl_data *td)
 
 	throtl_log(td, "limits changed");
 
-	hlist_for_each_entry_safe(tg, pos, n, &td->tg_list, tg_node) {
+	hlist_for_each_entry_safe(tg, n, &td->tg_list, tg_node) {
 		if (!tg->limits_changed)
 			continue;
 
@@ -991,10 +991,10 @@ throtl_destroy_tg(struct throtl_data *td, struct throtl_grp *tg)
 
 static void throtl_release_tgs(struct throtl_data *td)
 {
-	struct hlist_node *pos, *n;
+	struct hlist_node *n;
 	struct throtl_grp *tg;
 
-	hlist_for_each_entry_safe(tg, pos, n, &td->tg_list, tg_node) {
+	hlist_for_each_entry_safe(tg, n, &td->tg_list, tg_node) {
 		/*
 		 * If cgroup removal path got to blk_group first and removed
 		 * it from cgroup list, then it will take care of destroying
