@@ -19,6 +19,7 @@
 #include <linux/mount.h>
 #include <linux/gfs2_ondisk.h>
 #include <linux/quotaops.h>
+#include <linux/lockdep.h>
 #include <linux/module.h>
 
 #include "gfs2.h"

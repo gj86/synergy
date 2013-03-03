@@ -299,6 +299,7 @@ static struct file_system_type nfs_fs_type = {
 	.fs_flags	= FS_RENAME_DOES_D_MOVE|FS_REVAL_DOT|FS_BINARY_MOUNTDATA,
 };
 MODULE_ALIAS_FS("nfs");
+EXPORT_SYMBOL_GPL(nfs_fs_type);
 
 struct file_system_type nfs_xdev_fs_type = {
 	.owner		= THIS_MODULE,
@@ -356,6 +357,7 @@ static struct file_system_type nfs4_remote_fs_type = {
 	.fs_flags	= FS_RENAME_DOES_D_MOVE|FS_REVAL_DOT|FS_BINARY_MOUNTDATA,
 };
 MODULE_ALIAS_FS("nfs4");
+EXPORT_SYMBOL_GPL(nfs4_fs_type);
 
 struct file_system_type nfs4_xdev_fs_type = {
 	.owner		= THIS_MODULE,
