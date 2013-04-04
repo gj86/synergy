@@ -3415,7 +3415,10 @@ void mmc_start_host(struct mmc_host *host)
 {
 	host->f_init = max(freqs[0], host->f_min);
 	host->rescan_disable = 0;
-	mmc_power_up(host);
+
+	if (!(host->caps2 & MMC_CAP2_NO_PRESCAN_POWERUP))
+		mmc_power_up(host);
+
 #if defined(CONFIG_MACH_HLTESKT)||defined(CONFIG_MACH_HLTEKTT)||defined(CONFIG_MACH_HLTELGT)\
 	|| defined(CONFIG_MACH_FLTESKT) || defined(CONFIG_MACH_LT03SKT) || defined(CONFIG_MACH_LT03KTT) || defined(CONFIG_MACH_LT03LGT)\
 	|| defined(CONFIG_MACH_HLTEDCM) || defined(CONFIG_MACH_HLTEKDI) \
