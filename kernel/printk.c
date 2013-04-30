@@ -42,6 +42,7 @@
 #include <linux/notifier.h>
 #include <linux/rculist.h>
 #include <linux/irq_work.h>
+#include <linux/utsname.h>
 
 #include <asm/uaccess.h>
 #ifdef CONFIG_SEC_DEBUG
@@ -281,7 +282,7 @@ static void __init sec_log_save_old(void)
 }
 #endif
 
-	
+
 #ifdef CONFIG_PRINTK_NOCACHE
 static int __init printk_remap_nocache(void)
 {
@@ -323,7 +324,7 @@ static int __init printk_remap_nocache(void)
 		return rc;
 	}
 	pr_err("%s: nocache_base printk virtual addrs 0x%x  phy=0x%x\n",__func__, (unsigned int)(nocache_base), (unsigned int)(sec_log_save_base));
-	
+
 	nocache_base = nocache_base + 4096;
 
 	sec_log_mag = nocache_base - 8;
@@ -340,7 +341,7 @@ static int __init printk_remap_nocache(void)
 	}
 
 	raw_spin_lock_irqsave(&logbuf_lock, flags);
-		
+
 	start = min(con_start, log_start);
 	while (start != log_end) {
 		emit_sec_log_char(__log_buf
@@ -1255,7 +1256,7 @@ asmlinkage int vprintk(const char *fmt, va_list args)
 	 * Try to acquire and then immediately release the
 	 * console semaphore. The release will do all the
 	 * actual magic (print out buffers, wake up klogd,
-	 * etc). 
+	 * etc).
 	 *
 	 * The console_trylock_for_printk() function
 	 * will release 'logbuf_lock' regardless of whether it
@@ -2135,5 +2136,21 @@ void kmsg_dump(enum kmsg_dump_reason reason)
 #ifdef CONFIG_PRINTK_NOCACHE
 module_init(printk_remap_nocache);
 #endif
+
+/**
+ * dump_stack_print_info - print generic debug info for dump_stack()
+ * @log_lvl: log level
+ *
+ * Arch-specific dump_stack() implementations can use this function to
+ * print out the same debug information as the generic dump_stack().
+ */
+void dump_stack_print_info(const char *log_lvl)
+{
+	printk("%sCPU: %d PID: %d Comm: %.20s %s %s %.*s\n",
+	       log_lvl, raw_smp_processor_id(), current->pid, current->comm,
+	       print_tainted(), init_utsname()->release,
+	       (int)strcspn(init_utsname()->version, " "),
+	       init_utsname()->version);
+}
 
 #endif
