@@ -9,12 +9,15 @@
 #include <linux/sched.h>
 #include <linux/export.h>
 
+enum rwsem_waiter_type {
+	RWSEM_WAITING_FOR_WRITE,
+	RWSEM_WAITING_FOR_READ
+};
+
 struct rwsem_waiter {
 	struct list_head list;
 	struct task_struct *task;
-	unsigned int flags;
-#define RWSEM_WAITING_FOR_READ	0x00000001
-#define RWSEM_WAITING_FOR_WRITE	0x00000002
+	enum rwsem_waiter_type type;
 };
 
 int rwsem_is_locked(struct rw_semaphore *sem)
@@ -79,7 +82,7 @@ __rwsem_do_wake(struct rw_semaphore *sem, int wakewrite)
 	waiter = list_entry(sem->wait_list.next, struct rwsem_waiter, list);
 
 	if (!wakewrite) {
-		if (waiter->flags & RWSEM_WAITING_FOR_WRITE)
+		if (waiter->type == RWSEM_WAITING_FOR_WRITE)
 			goto out;
 		goto dont_wake_writers;
 	}
@@ -88,8 +91,8 @@ __rwsem_do_wake(struct rw_semaphore *sem, int wakewrite)
 	 * as we support write lock stealing, we can't set sem->activity
 	 * to -1 here to indicate we get the lock. Instead, we wake it up
 	 * to let it go get it again.
- 	 */
-	if (waiter->flags & RWSEM_WAITING_FOR_WRITE) {
+	 */
+	if (waiter->type == RWSEM_WAITING_FOR_WRITE) {
 #ifdef CONFIG_SEC_FORKHANG_DEBUG
 		sem->owner = waiter->task;
 		sem->owner_pid = waiter->task->pid;
@@ -103,7 +106,7 @@ __rwsem_do_wake(struct rw_semaphore *sem, int wakewrite)
 	/* grant an infinite number of read locks to the front of the queue */
  dont_wake_writers:
 	woken = 0;
-	while (waiter->flags & RWSEM_WAITING_FOR_READ) {
+	while (waiter->type == RWSEM_WAITING_FOR_READ) {
 		struct list_head *next = waiter->list.next;
 
 		list_del(&waiter->list);
@@ -167,7 +170,7 @@ void __sched __down_read(struct rw_semaphore *sem)
 
 	/* set up my own style of waitqueue */
 	waiter.task = tsk;
-	waiter.flags = RWSEM_WAITING_FOR_READ;
+	waiter.type = RWSEM_WAITING_FOR_READ;
 	get_task_struct(tsk);
 
 	list_add_tail(&waiter.list, &sem->wait_list);
@@ -230,8 +233,7 @@ void __sched __down_write_nested(struct rw_semaphore *sem, int subclass)
 	/* set up my own style of waitqueue */
 	tsk = current;
 	waiter.task = tsk;
-	waiter.flags = RWSEM_WAITING_FOR_WRITE;
-
+	waiter.type = RWSEM_WAITING_FOR_WRITE;
 	list_add_tail(&waiter.list, &sem->wait_list);
 
 	for (;;) {
