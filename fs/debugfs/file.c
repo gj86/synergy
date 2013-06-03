@@ -22,6 +22,7 @@
 #include <linux/io.h>
 #include <linux/atomic.h>
 #include <linux/slab.h>
+#include <linux/atomic.h>
 
 static ssize_t default_read_file(struct file *file, char __user *buf,
 				 size_t count, loff_t *ppos)
