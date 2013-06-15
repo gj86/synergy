@@ -71,6 +71,10 @@ void asmlinkage __attribute__((weak)) early_printk(const char *fmt, ...)
 {
 }
 
+#ifdef CONFIG_EARLY_PRINTK_DIRECT
+extern void printascii(char *);
+#endif
+
 /* printk's without a loglevel use this.. */
 #define DEFAULT_MESSAGE_LOGLEVEL CONFIG_DEFAULT_MESSAGE_LOGLEVEL
 
@@ -2120,6 +2124,10 @@ asmlinkage int vprintk_emit(int facility, int level,
 			text = (char *)end_of_header;
 		}
 	}
+
+#ifdef CONFIG_EARLY_PRINTK_DIRECT
+	printascii(text);
+#endif
 
 	if (level == -1)
 		level = default_message_loglevel;
