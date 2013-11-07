@@ -60,6 +60,15 @@ static bool sdhci_check_state(struct sdhci_host *);
 #ifdef CONFIG_PM_RUNTIME
 static int sdhci_runtime_pm_get(struct sdhci_host *host);
 static int sdhci_runtime_pm_put(struct sdhci_host *host);
+static void sdhci_dump_rpm_info(struct sdhci_host *host)
+{
+	struct mmc_host *mmc = host->mmc;
+
+	pr_info("%s: rpmstatus[pltfm](runtime-suspend:usage_count:disable_depth)(%d:%d:%d)\n",
+		mmc_hostname(mmc), mmc->parent->power.runtime_status,
+		atomic_read(&mmc->parent->power.usage_count),
+		mmc->parent->power.disable_depth);
+}
 #else
 static inline int sdhci_runtime_pm_get(struct sdhci_host *host)
 {
@@ -68,6 +77,9 @@ static inline int sdhci_runtime_pm_get(struct sdhci_host *host)
 static inline int sdhci_runtime_pm_put(struct sdhci_host *host)
 {
 	return 0;
+}
+static void sdhci_dump_rpm_info(struct sdhci_host *host)
+{
 }
 #endif
 
@@ -171,10 +183,8 @@ static void sdhci_dump_state(struct sdhci_host *host)
 	pr_info("%s: clk: %d clk-gated: %d claimer: %s pwr: %d\n",
 		mmc_hostname(mmc), host->clock, mmc->clk_gated,
 		mmc->claimer->comm, host->pwr);
-	pr_info("%s: rpmstatus[pltfm](runtime-suspend:usage_count:disable_depth)(%d:%d:%d)\n",
-		mmc_hostname(mmc), mmc->parent->power.runtime_status,
-		atomic_read(&mmc->parent->power.usage_count),
-		mmc->parent->power.disable_depth);
+
+	sdhci_dump_rpm_info(host);
 	if (mmc->card) {
 		pr_info("%s: card->cid : %08x%08x%08x%08x\n", mmc_hostname(mmc),
 				mmc->card->raw_cid[0], mmc->card->raw_cid[1],
