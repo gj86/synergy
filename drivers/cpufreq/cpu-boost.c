@@ -30,7 +30,6 @@ struct cpu_sync {
 	struct task_struct *thread;
 	wait_queue_head_t sync_wq;
 	struct delayed_work boost_rem;
-	struct delayed_work input_boost_rem;
 	int cpu;
 	spinlock_t lock;
 	bool pending;
@@ -38,6 +37,7 @@ struct cpu_sync {
 	int src_cpu;
 	unsigned int boost_min;
 	unsigned int input_boost_min;
+	unsigned int input_boost_freq;
 };
 
 static DEFINE_PER_CPU(struct cpu_sync, sync_info);
@@ -45,23 +45,79 @@ static struct workqueue_struct *cpu_boost_wq;
 
 static struct work_struct input_boost_work;
 
-bool cpuboost_enable = true;
-module_param(cpuboost_enable, bool, 0644);
-
 static unsigned int boost_ms;
 module_param(boost_ms, uint, 0644);
 
 static unsigned int sync_threshold;
 module_param(sync_threshold, uint, 0644);
 
-static unsigned int input_boost_freq;
-module_param(input_boost_freq, uint, 0644);
+static unsigned int input_boost_enabled = 1;
+module_param(input_boost_enabled, uint, 0644);
 
 static unsigned int input_boost_ms = 40;
 module_param(input_boost_ms, uint, 0644);
 
+static struct delayed_work input_boost_rem;
 static u64 last_input_time;
 #define MIN_INPUT_INTERVAL (150 * USEC_PER_MSEC)
+
+static int set_input_boost_freq(const char *buf, const struct kernel_param *kp)
+{
+	int i, ntokens = 0;
+	unsigned int val, cpu;
+	const char *cp = buf;
+
+	while ((cp = strpbrk(cp + 1, " :")))
+		ntokens++;
+
+	/* single number: apply to all CPUs */
+	if (!ntokens) {
+		if (sscanf(buf, "%u\n", &val) != 1)
+			return -EINVAL;
+		for_each_possible_cpu(i)
+			per_cpu(sync_info, i).input_boost_freq = val;
+		goto out;
+	}
+
+	/* CPU:value pair */
+	if (!(ntokens % 2))
+		return -EINVAL;
+
+	cp = buf;
+	for (i = 0; i < ntokens; i += 2) {
+		if (sscanf(cp, "%u:%u", &cpu, &val) != 2)
+			return -EINVAL;
+		if (cpu > num_possible_cpus())
+			return -EINVAL;
+
+		per_cpu(sync_info, cpu).input_boost_freq = val;
+		cp = strchr(cp, ' ');
+		cp++;
+	}
+
+out:
+	return 0;
+}
+
+static int get_input_boost_freq(char *buf, const struct kernel_param *kp)
+{
+	int cnt = 0, cpu;
+	struct cpu_sync *s;
+
+	for_each_possible_cpu(cpu) {
+		s = &per_cpu(sync_info, cpu);
+		cnt += snprintf(buf + cnt, PAGE_SIZE - cnt,
+				"%d:%u ", cpu, s->input_boost_freq);
+	}
+	cnt += snprintf(buf + cnt, PAGE_SIZE - cnt, "\n");
+	return cnt;
+}
+
+static const struct kernel_param_ops param_ops_input_boost_freq = {
+	.set = set_input_boost_freq,
+	.get = get_input_boost_freq,
+};
+module_param_cb(input_boost_freq, &param_ops_input_boost_freq, NULL, 0644);
 
 /*
  * The CPUFREQ_ADJUST notifier is used to override the current policy min to
@@ -83,14 +139,13 @@ static int boost_adjust_notify(struct notifier_block *nb, unsigned long val, voi
 	unsigned int ib_min = s->input_boost_min;
 	unsigned int min;
 
-	if (!cpuboost_enable) return NOTIFY_OK;
-
 	switch (val) {
 	case CPUFREQ_ADJUST:
 		if (!b_min && !ib_min)
 			break;
 
 		min = max(b_min, ib_min);
+		min = min(min, policy->max);
 
 		pr_debug("CPU%u policy min before boost: %u kHz\n",
 			 cpu, policy->min);
@@ -125,15 +180,33 @@ static void do_boost_rem(struct work_struct *work)
 	cpufreq_update_policy(s->cpu);
 }
 
+static void update_policy_online(void)
+{
+	unsigned int i;
+
+	/* Re-evaluate policy to trigger adjust notifier for online CPUs */
+	get_online_cpus();
+	for_each_online_cpu(i) {
+		pr_debug("Updating policy for CPU%d\n", i);
+		cpufreq_update_policy(i);
+	}
+	put_online_cpus();
+}
+
 static void do_input_boost_rem(struct work_struct *work)
 {
-	struct cpu_sync *s = container_of(work, struct cpu_sync,
-						input_boost_rem.work);
+	unsigned int i;
+	struct cpu_sync *i_sync_info;
 
-	pr_debug("Removing input boost for CPU%d\n", s->cpu);
-	s->input_boost_min = 0;
-	/* Force policy re-evaluation to trigger adjust notifier. */
-	cpufreq_update_policy(s->cpu);
+	/* Reset the input_boost_min for all CPUs in the system */
+	pr_debug("Resetting input boost min for all CPUs\n");
+	for_each_possible_cpu(i) {
+		i_sync_info = &per_cpu(sync_info, i);
+		i_sync_info->input_boost_min = 0;
+	}
+
+	/* Update policies for all online CPUs */
+	update_policy_online();
 }
 
 static int boost_mig_sync_thread(void *data)
@@ -144,8 +217,6 @@ static int boost_mig_sync_thread(void *data)
 	struct cpufreq_policy dest_policy;
 	struct cpufreq_policy src_policy;
 	unsigned long flags;
-
-	if (!cpuboost_enable) return 0;
 
 	while(1) {
 		wait_event_interruptible(s->sync_wq, s->pending ||
@@ -173,65 +244,37 @@ static int boost_mig_sync_thread(void *data)
 			continue;
 		}
 
-#ifdef CONFIG_CPUFREQ_HARDLIMIT
-		if (sync_threshold && (dest_policy.cur >= check_cpufreq_hardlimit(sync_threshold))) /* Yank555.lu - Enforce hardlimit */
-#else
 		if (sync_threshold && (dest_policy.cur >= sync_threshold))
-#endif
 			continue;
 
 		cancel_delayed_work_sync(&s->boost_rem);
 		if (sync_threshold) {
 			if (src_policy.cur >= sync_threshold)
-#ifdef CONFIG_CPUFREQ_HARDLIMIT
-				#ifdef CPUFREQ_HARDLIMIT_DEBUG
-				pr_info("[HARDLIMIT] cpu-boost.c run_boost_migration (A) : sync_threshold = %u / src_policy.cur = %u / old_boost_min = %u / new_boost_min = %u \n",
-						sync_threshold,
-						src_policy.cur,
-						s->boost_min,
-						check_cpufreq_hardlimit(sync_threshold)
-					);
-				#endif
-				s->boost_min = check_cpufreq_hardlimit(sync_threshold); /* Yank555.lu - Enforce hardlimit */
-#else
 				s->boost_min = sync_threshold;
-#endif
 			else
-#ifdef CONFIG_CPUFREQ_HARDLIMIT
-				#ifdef CPUFREQ_HARDLIMIT_DEBUG
-				pr_info("[HARDLIMIT] cpu-boost.c run_boost_migration (B) : src_policy.cur = %u / old_boost_min = %u / new_boost_min = %u \n",
-						src_policy.cur,
-						s->boost_min,
-						check_cpufreq_hardlimit(src_policy.cur)
-					);
-				#endif
-				s->boost_min = check_cpufreq_hardlimit(src_policy.cur); /* Yank555.lu - Enforce hardlimit */
-#else
 				s->boost_min = src_policy.cur;
-#endif
 		} else {
-#ifdef CONFIG_CPUFREQ_HARDLIMIT
-			#ifdef CPUFREQ_HARDLIMIT_DEBUG
-			pr_info("[HARDLIMIT] cpu-boost.c run_boost_migration (B) : src_policy.cur = %u / old_boost_min = %u / new_boost_min = %u \n",
-					src_policy.cur,
-					s->boost_min,
-					check_cpufreq_hardlimit(src_policy.cur)
-				);
-			#endif
-			s->boost_min = check_cpufreq_hardlimit(src_policy.cur); /* Yank555.lu - Enforce hardlimit */
-#else
 			s->boost_min = src_policy.cur;
-#endif
 		}
 		/* Force policy re-evaluation to trigger adjust notifier. */
 		get_online_cpus();
+		if (cpu_online(src_cpu))
+			/*
+			 * Send an unchanged policy update to the source
+			 * CPU. Even though the policy isn't changed from
+			 * its existing boosted or non-boosted state
+			 * notifying the source CPU will let the governor
+			 * know a boost happened on another CPU and that it
+			 * should re-evaluate the frequency at the next timer
+			 * event without interference from a min sample time.
+			 */
+			cpufreq_update_policy(src_cpu);
 		if (cpu_online(dest_cpu)) {
 			cpufreq_update_policy(dest_cpu);
 			queue_delayed_work_on(dest_cpu, cpu_boost_wq,
 				&s->boost_rem, msecs_to_jiffies(boost_ms));
 		} else {
 			s->boost_min = 0;
-			pr_debug("Resetting boost_min to 0\n");
 		}
 		put_online_cpus();
 	}
@@ -245,9 +288,11 @@ static int boost_migration_notify(struct notifier_block *nb,
 	unsigned long flags;
 	struct cpu_sync *s = &per_cpu(sync_info, dest_cpu);
 
-	if (!cpuboost_enable) return NOTIFY_OK;
-
 	if (!boost_ms)
+		return NOTIFY_OK;
+
+	/* Avoid deadlock in try_to_wake_up() */
+	if (s->thread == current)
 		return NOTIFY_OK;
 
 	pr_debug("Migration: CPU%d --> CPU%d\n", (int) arg, (int) dest_cpu);
@@ -275,29 +320,23 @@ static struct notifier_block boost_migration_nb = {
 
 static void do_input_boost(struct work_struct *work)
 {
-	unsigned int i, ret;
+	unsigned int i;
 	struct cpu_sync *i_sync_info;
-	struct cpufreq_policy policy;
 
-	if (!cpuboost_enable) return;
+	cancel_delayed_work_sync(&input_boost_rem);
 
-	for_each_online_cpu(i) {
-
+	/* Set the input_boost_min for all CPUs in the system */
+	pr_debug("Setting input boost min for all CPUs\n");
+	for_each_possible_cpu(i) {
 		i_sync_info = &per_cpu(sync_info, i);
-		ret = cpufreq_get_policy(&policy, i);
-		if (ret)
-			continue;
-		if (policy.cur >= input_boost_freq)
-			continue;
-
-		cancel_delayed_work_sync(&i_sync_info->input_boost_rem);
-		i_sync_info->input_boost_min = input_boost_freq;
-		cpufreq_update_policy(i);
-		queue_delayed_work_on(i_sync_info->cpu, cpu_boost_wq,
-			&i_sync_info->input_boost_rem,
-			msecs_to_jiffies(input_boost_ms));
+		i_sync_info->input_boost_min = i_sync_info->input_boost_freq;
 	}
-	put_online_cpus();
+
+	/* Update policies for all online CPUs */
+	update_policy_online();
+
+	queue_delayed_work(cpu_boost_wq, &input_boost_rem,
+					msecs_to_jiffies(input_boost_ms));
 }
 
 static void cpuboost_input_event(struct input_handle *handle,
@@ -305,9 +344,7 @@ static void cpuboost_input_event(struct input_handle *handle,
 {
 	u64 now;
 
-	if (!cpuboost_enable) return;
-
-	if (!input_boost_freq)
+	if (!input_boost_enabled || !input_boost_ms)
 		return;
 
 	now = ktime_to_us(ktime_get());
@@ -412,6 +449,7 @@ static int cpu_boost_init(void)
 		return -EFAULT;
 
 	INIT_WORK(&input_boost_work, do_input_boost);
+	INIT_DELAYED_WORK(&input_boost_rem, do_input_boost_rem);
 
 	for_each_possible_cpu(cpu) {
 		s = &per_cpu(sync_info, cpu);
@@ -420,7 +458,6 @@ static int cpu_boost_init(void)
 		atomic_set(&s->being_woken, 0);
 		spin_lock_init(&s->lock);
 		INIT_DELAYED_WORK(&s->boost_rem, do_boost_rem);
-		INIT_DELAYED_WORK(&s->input_boost_rem, do_input_boost_rem);
 		s->thread = kthread_run(boost_mig_sync_thread, (void *)cpu,
 					"boost_sync/%d", cpu);
 		set_cpus_allowed(s->thread, *cpumask_of(cpu));
