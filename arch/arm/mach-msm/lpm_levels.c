@@ -34,7 +34,6 @@
 #include "pm.h"
 #include "rpm-notifier.h"
 #include "spm.h"
-#include "idle.h"
 #include "clock.h"
 
 #include <mach/gpiomux.h>
