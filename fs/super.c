@@ -719,7 +719,6 @@ int do_remount_sb2(struct vfsmount *mnt, struct super_block *sb, int flags, void
 	if (flags & MS_RDONLY)
 		acct_auto_close(sb);
 	shrink_dcache_sb(sb);
-	sync_filesystem(sb);
 
 	remount_ro = (flags & MS_RDONLY) && !(sb->s_flags & MS_RDONLY);
 
@@ -735,6 +734,8 @@ int do_remount_sb2(struct vfsmount *mnt, struct super_block *sb, int flags, void
 				return retval;
 		}
 	}
+
+	sync_filesystem(sb);
 
 	if (mnt && sb->s_op->remount_fs2) {
 		retval = sb->s_op->remount_fs2(mnt, sb, &flags, data);
