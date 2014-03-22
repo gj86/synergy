@@ -59,6 +59,7 @@ obj-$(CONFIG_DEBUG_KMEMLEAK_TEST) += kmemleak-test.o
 obj-$(CONFIG_CLEANCACHE) += cleancache.o
 obj-$(CONFIG_ZSMALLOC_NEW) += zsmalloc.o
 obj-$(CONFIG_ZCACHE)    += zcache.o
+obj-$(CONFIG_PAGE_OWNER) += pageowner.o
 obj-$(CONFIG_ZPOOL)	+= zpool.o
 obj-$(CONFIG_PROCESS_RECLAIM)	+= process_reclaim.o
 obj-$(CONFIG_ZSMALLOC)	+= zsmalloc.o
