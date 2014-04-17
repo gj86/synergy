@@ -1033,7 +1033,7 @@ retry:
 
 		/* set drive type to other value. default setting is 0x0 */
 		while (++drv_type <= MAX_DRV_TYPES_SUPPORTED_HS200) {
-			if (card->ext_csd.raw_drive_strength &
+			if (card->ext_csd.raw_driver_strength &
 					(1 << drv_type)) {
 				sdhci_msm_set_mmc_drv_type(host, opcode,
 						drv_type);
