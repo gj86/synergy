@@ -646,8 +646,6 @@ static int mmc_read_ext_csd(struct mmc_card *card, u8 *ext_csd)
 			ext_csd[EXT_CSD_DRIVER_STRENGTH];
 	} else {
 		card->ext_csd.data_sector_size = 512;
-	}
-else{
 		/*
 		 * enable discard feature if emmc is 4.41+ Toshiba eMMC 19nm
 		 *  Normally, emmc 4.5 use EXT_CSD[501]
@@ -675,6 +673,37 @@ else{
 				EXT_CSD_FIRMWARE_VERSION);
 	}
 
+	/* eMMC v4.5 or later */
+	if (card->ext_csd.rev >= 7) {
+		card->ext_csd.firmware_version[0] =
+			ext_csd[EXT_CSD_FIRMWARE_VERSION + 0] << 0 |
+			ext_csd[EXT_CSD_FIRMWARE_VERSION + 1] << 8 |
+			ext_csd[EXT_CSD_FIRMWARE_VERSION + 2] << 16 |
+			ext_csd[EXT_CSD_FIRMWARE_VERSION + 3] << 24;
+		card->ext_csd.firmware_version[1] =
+			ext_csd[EXT_CSD_FIRMWARE_VERSION + 4] << 0 |
+			ext_csd[EXT_CSD_FIRMWARE_VERSION + 5] << 8 |
+			ext_csd[EXT_CSD_FIRMWARE_VERSION + 6] << 16 |
+			ext_csd[EXT_CSD_FIRMWARE_VERSION + 7] << 24;
+		card->ext_csd.device_version =
+			ext_csd[EXT_CSD_DEVICE_VERSION + 0] << 0 |
+			ext_csd[EXT_CSD_DEVICE_VERSION + 1] << 8;
+		card->ext_csd.raw_optimal_trim_size =
+			ext_csd[EXT_CSD_OPTIMAL_TRIM_UNIT_SIZE];
+		card->ext_csd.raw_optimal_write_size =
+			ext_csd[EXT_CSD_OPTIMAL_WRITE_SIZE];
+		card->ext_csd.raw_optimal_read_size =
+			ext_csd[EXT_CSD_OPTIMAL_READ_SIZE];
+		card->ext_csd.pre_eol_info =
+			ext_csd[EXT_CSD_PRE_EOL_INFO];
+		card->ext_csd.dev_life_time_est_a =
+			ext_csd[EXT_CSD_DEVICE_LIFE_TIME_EST_TYP_A];
+		card->ext_csd.dev_life_time_est_b =
+			ext_csd[EXT_CSD_DEVICE_LIFE_TIME_EST_TYP_B];
+		memcpy(card->ext_csd.vendor_health_report,
+		       &ext_csd[EXT_CSD_VENDOR_PROPRIETARY_HEALTH_REPORT],
+		       sizeof(card->ext_csd.vendor_health_report));
+	}
 out:
 	return err;
 }
@@ -780,6 +809,28 @@ MMC_DEV_ATTR(hpi, "hpi %s\n", card->ext_csd.hpi ? "enabled" : "disabled");
 MMC_DEV_ATTR(packed_cmd, "packed cmd %s / %s\n",
 		card->host->caps2 & MMC_CAP2_PACKED_WR ? "WR enabled" : "WR disabled",
 		card->host->caps2 & MMC_CAP2_PACKED_RD ? "RD enabled" : "RD disabled");
+MMC_DEV_ATTR(firmware_version, "0x%08x%08x\n",
+	card->ext_csd.firmware_version[1], card->ext_csd.firmware_version[0]);
+MMC_DEV_ATTR(device_version, "0x%04x\n", card->ext_csd.device_version);
+MMC_DEV_ATTR(optimal_trim_unit_size, "%d\n",
+		card->ext_csd.raw_optimal_trim_size);
+MMC_DEV_ATTR(optimal_write_size, "%d\n", card->ext_csd.raw_optimal_write_size);
+MMC_DEV_ATTR(optimal_read_size, "%d\n", card->ext_csd.raw_optimal_read_size);
+MMC_DEV_ATTR(pre_eol_info, "%d\n", card->ext_csd.pre_eol_info);
+MMC_DEV_ATTR(device_life_time_est_typ_a, "%d\n",
+		card->ext_csd.dev_life_time_est_a);
+MMC_DEV_ATTR(device_life_time_est_typ_b, "%d\n",
+		card->ext_csd.dev_life_time_est_b);
+MMC_DEV_ATTR(vendor_proprietary_health_report,
+		"%08x%08x%08x%08x%08x%08x%08x%08x\n",
+		card->ext_csd.vendor_health_report[0],
+		card->ext_csd.vendor_health_report[1],
+		card->ext_csd.vendor_health_report[2],
+		card->ext_csd.vendor_health_report[3],
+		card->ext_csd.vendor_health_report[4],
+		card->ext_csd.vendor_health_report[5],
+		card->ext_csd.vendor_health_report[6],
+		card->ext_csd.vendor_health_report[7]);
 
 static struct attribute *mmc_std_attrs[] = {
 	&dev_attr_cid.attr,
@@ -804,6 +855,15 @@ static struct attribute *mmc_std_attrs[] = {
 	&dev_attr_erase_type.attr,
 	&dev_attr_hpi.attr,
 	&dev_attr_packed_cmd.attr,
+	&dev_attr_firmware_version.attr,
+	&dev_attr_device_version.attr,
+	&dev_attr_optimal_trim_unit_size.attr,
+	&dev_attr_optimal_write_size.attr,
+	&dev_attr_optimal_read_size.attr,
+	&dev_attr_pre_eol_info.attr,
+	&dev_attr_device_life_time_est_typ_a.attr,
+	&dev_attr_device_life_time_est_typ_b.attr,
+	&dev_attr_vendor_proprietary_health_report.attr,
 	NULL,
 };
 
@@ -1159,6 +1219,7 @@ static int mmc_select_driver_type(struct mmc_card *card)
 		host_drv_type, card_drv_type);
 	mmc_host_clk_release(card->host);
 
+	pr_info("%s: %s: %d\n", mmc_hostname(card->host), __func__, drv_type);
 	/* We send the driver type as part of the HS_TIMING command. */
 	card->ext_csd.drv_type = drv_type;
 

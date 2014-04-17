@@ -221,7 +221,7 @@ static int mmc_decode_scr(struct mmc_card *card)
  */
 static int mmc_read_ssr(struct mmc_card *card)
 {
-	unsigned int au, es, et, eo;
+	unsigned int au, es, et, eo, spd;
 	int err, i;
 	u32 *ssr;
 
@@ -264,6 +264,14 @@ static int mmc_read_ssr(struct mmc_card *card)
 		pr_warning("%s: SD Status: Invalid Allocation Unit "
 			"size.\n", mmc_hostname(card->host));
 	}
+
+	spd = UNSTUFF_BITS(ssr, 440 - 384, 8);
+	if (spd < 4)
+		card->ssr.speed_class = spd * 2;
+	else if (spd == 4)
+		card->ssr.speed_class = 10;
+
+	card->ssr.uhs_speed_grade = UNSTUFF_BITS(ssr, 396 - 384, 4);
 out:
 	kfree(ssr);
 	return err;
@@ -774,6 +782,9 @@ MMC_DEV_ATTR(oemid, "0x%04x\n", card->cid.oemid);
 MMC_DEV_ATTR(serial, "0x%08x\n", card->cid.serial);
 MMC_DEV_ATTR(caps, "0x%08x\n", (unsigned int)(card->host->caps));
 MMC_DEV_ATTR(caps2, "0x%08x\n", card->host->caps2);
+MMC_DEV_ATTR(speed_class, "%d\n", card->ssr.speed_class);
+MMC_DEV_ATTR(uhs_speed_grade, "%d\n", card->ssr.uhs_speed_grade);
+
 
 static struct attribute *sd_std_attrs[] = {
 	&dev_attr_cid.attr,
@@ -790,6 +801,8 @@ static struct attribute *sd_std_attrs[] = {
 	&dev_attr_serial.attr,
 	&dev_attr_caps.attr,
 	&dev_attr_caps2.attr,
+	&dev_attr_speed_class.attr,
+	&dev_attr_uhs_speed_grade.attr,
 	NULL,
 };
 
