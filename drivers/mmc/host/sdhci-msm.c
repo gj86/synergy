@@ -3549,6 +3549,13 @@ static int __devinit sdhci_msm_probe(struct platform_device *pdev)
 		mmc_enable_ls_gpio(host, msm_host->pdata->ls_gpio);
 #endif
 	if (gpio_is_valid(msm_host->pdata->status_gpio)) {
+		/*
+		 * Set up the card detect GPIO in active configuration before
+		 * configuring it as an IRQ. Otherwise, it can be in some
+		 * weird/inconsistent state resulting in flood of interrupts.
+		 */
+		sdhci_msm_setup_pins(msm_host->pdata, true);
+
 		ret = mmc_cd_gpio_request(msm_host->mmc,
 				msm_host->pdata->status_gpio);
 		if (ret) {
