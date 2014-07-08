@@ -1136,7 +1136,7 @@ static int mmc_blk_ioctl(struct block_device *bdev, fmode_t mode,
 		struct cprm_request *req = (struct cprm_request *)arg;
 		static int i;
 		static unsigned long temp_arg[16] = {0};
-		
+
 		printk(KERN_DEBUG "%s:cmd [%x]\n",
 			__func__, cmd);
 
@@ -1187,7 +1187,7 @@ static int mmc_blk_ioctl(struct block_device *bdev, fmode_t mode,
 		ret = mmc_blk_ioctl_cmd(bdev, (struct mmc_ioc_cmd __user *)arg);
 	else if (cmd == MMC_IOC_RPMB_CMD)
 		ret = mmc_blk_ioctl_rpmb_cmd(bdev,
-				(struct mmc_ioc_rpmb __user *)arg);	
+				(struct mmc_ioc_rpmb __user *)arg);
 	else if(cmd == MMC_IOC_CLOCK)
 	{
 		unsigned int clock = (unsigned int)arg;
@@ -1731,8 +1731,11 @@ static int mmc_blk_issue_flush(struct mmc_queue *mq, struct request *req)
 	int ret = 0;
 
 	ret = mmc_flush_cache(card);
-	if (ret == -ETIMEDOUT) {
-		pr_info("%s: requeue flush request after timeout", __func__);
+	if (ret == -ETIMEDOUT &&
+	    (card->quirks & MMC_QUIRK_RETRY_FLUSH_TIMEOUT)) {
+		pr_info("%s: %s: requeue flush request after timeout",
+				req->rq_disk->disk_name, __func__);
+
 		spin_lock_irq(q->queue_lock);
 		blk_requeue_request(q, req);
 		spin_unlock_irq(q->queue_lock);
@@ -2896,7 +2899,7 @@ static int mmc_blk_issue_rw_rq(struct mmc_queue *mq, struct request *rqc)
 				disable_multi = 1;
 				break;
 			}
-			
+
 			/*
 			 * case : SDcard Sector 0 read data error even single read
 			 * skip reading other blocks.
@@ -3485,6 +3488,9 @@ static const struct mmc_fixup blk_fixups[] =
 	/* Disable cache for this cards */
 	MMC_FIXUP("H8G2d", CID_MANFID_HYNIX, CID_OEMID_ANY, add_quirk_mmc,
 		  MMC_QUIRK_CACHE_DISABLE),
+	MMC_FIXUP(CID_NAME_ANY, CID_MANFID_HYNIX, CID_OEMID_ANY, add_quirk_mmc,
+		  MMC_QUIRK_RETRY_FLUSH_TIMEOUT),
+
 	/*
 	 * Some devices have issues that requires dummy read
 	 */
@@ -3575,8 +3581,8 @@ static inline void mmc_blk_bkops_sysfs_init(struct mmc_card *card)
 
 		dev = disk_to_dev(md->disk);
 		rc = sysfs_chown_file(&dev->kobj, &card->bkops_attr.attr,
-				      CONFIG_MMC_BKOPS_NODE_UID, 
-				      CONFIG_MMC_BKOPS_NODE_GID); 
+				      CONFIG_MMC_BKOPS_NODE_UID,
+				      CONFIG_MMC_BKOPS_NODE_GID);
 		if (rc)
 			pr_err("%s: Failed to change mode of sysfs entry\n",
 					mmc_hostname(card->host));
@@ -3628,7 +3634,7 @@ static int mmc_blk_probe(struct mmc_card *card)
 		if (mmc_add_disk(part_md))
 			goto out;
 	}
-	
+
 	/* init sysfs for bkops mode */
 	if (card && mmc_card_mmc(card)) {
 		mmc_blk_bkops_sysfs_init(card);
