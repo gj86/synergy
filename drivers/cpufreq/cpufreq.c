@@ -1,4 +1,4 @@
-/*
+e/*
  *  linux/drivers/cpufreq/cpufreq.c
  *
  *  Copyright (C) 2001 Russell King
@@ -529,6 +529,7 @@ static ssize_t store_##file_name					\
 	ret = sscanf(buf, "%u", &new_policy.object);			\
 	if (ret != 1)							\
 		return -EINVAL;						\
+									\
 									\
 	ret = cpufreq_driver->verify(&new_policy);			\
 	if (ret)							\
