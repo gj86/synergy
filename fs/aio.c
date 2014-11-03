@@ -40,6 +40,8 @@
 #include <asm/kmap_types.h>
 #include <asm/uaccess.h>
 
+#include "read_write.h"
+
 #if DEBUG > 1
 #define dprintk		printk
 #else
@@ -1381,10 +1383,10 @@ static ssize_t aio_rw_vect_retry(struct kiocb *iocb)
 
 	if ((iocb->ki_opcode == IOCB_CMD_PREADV) ||
 		(iocb->ki_opcode == IOCB_CMD_PREAD)) {
-		rw_op = file->f_op->aio_read;
+		rw_op = do_aio_read;
 		opcode = IOCB_CMD_PREADV;
 	} else {
-		rw_op = file->f_op->aio_write;
+		rw_op = do_aio_write;
 		opcode = IOCB_CMD_PWRITEV;
 	}
 
@@ -1513,7 +1515,7 @@ static ssize_t aio_setup_iocb(struct kiocb *kiocb, bool compat)
 		if (ret)
 			break;
 		ret = -EINVAL;
-		if (file->f_op->aio_read)
+		if (file->f_op->read_iter || file->f_op->aio_read)
 			kiocb->ki_retry = aio_rw_vect_retry;
 		break;
 	case IOCB_CMD_PWRITE:
@@ -1528,7 +1530,7 @@ static ssize_t aio_setup_iocb(struct kiocb *kiocb, bool compat)
 		if (ret)
 			break;
 		ret = -EINVAL;
-		if (file->f_op->aio_write)
+		if (file->f_op->write_iter || file->f_op->aio_write)
 			kiocb->ki_retry = aio_rw_vect_retry;
 		break;
 	case IOCB_CMD_PREADV:
@@ -1539,7 +1541,7 @@ static ssize_t aio_setup_iocb(struct kiocb *kiocb, bool compat)
 		if (ret)
 			break;
 		ret = -EINVAL;
-		if (file->f_op->aio_read)
+		if (file->f_op->read_iter || file->f_op->aio_read)
 			kiocb->ki_retry = aio_rw_vect_retry;
 		break;
 	case IOCB_CMD_PWRITEV:
@@ -1550,7 +1552,7 @@ static ssize_t aio_setup_iocb(struct kiocb *kiocb, bool compat)
 		if (ret)
 			break;
 		ret = -EINVAL;
-		if (file->f_op->aio_write)
+		if (file->f_op->write_iter || file->f_op->aio_write)
 			kiocb->ki_retry = aio_rw_vect_retry;
 		break;
 	case IOCB_CMD_FDSYNC:
