@@ -234,8 +234,6 @@ static void vmpressure_work_fn(struct work_struct *work)
 		return;
 	}
 
-	spin_lock(&vmpr->sr_lock);
-	scanned = vmpr->scanned;
 	reclaimed = vmpr->reclaimed;
 	vmpr->scanned = 0;
 	vmpr->reclaimed = 0;
