@@ -329,8 +329,7 @@ static inline int valid_io_request(struct zram *zram,
 	u64 end, bound;
 
 	/* unaligned request */
-	if (unlikely(bio->bi_sector &
-		     (ZRAM_SECTOR_PER_LOGICAL_BLOCK - 1)))
+	if (unlikely(start & (ZRAM_SECTOR_PER_LOGICAL_BLOCK - 1)))
 		return 0;
 
 	if (unlikely(size & (ZRAM_LOGICAL_BLOCK_SIZE - 1)))
