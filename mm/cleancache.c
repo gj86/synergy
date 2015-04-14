@@ -66,10 +66,24 @@ void __cleancache_init_fs(struct super_block *sb)
 EXPORT_SYMBOL(__cleancache_init_fs);
 
 /* Called by a cleancache-enabled clustered filesystem at time of mount */
-void __cleancache_init_shared_fs(char *uuid, struct super_block *sb)
+void __cleancache_init_shared_fs(struct super_block *sb)
 {
-	sb->cleancache_poolid =
-		(*cleancache_ops.init_shared_fs)(uuid, PAGE_SIZE);
+	int i;
+
+	mutex_lock(&poolid_mutex);
+	for (i = 0; i < MAX_INITIALIZABLE_FS; i++) {
+		if (shared_fs_poolid_map[i] == FS_UNKNOWN) {
+			sb->cleancache_poolid = i + FAKE_SHARED_FS_POOLID_OFFSET;
+			uuids[i] = sb->s_uuid;
+			if (cleancache_ops)
+				shared_fs_poolid_map[i] = cleancache_ops->init_shared_fs
+						(sb->s_uuid, PAGE_SIZE);
+			else
+				shared_fs_poolid_map[i] = FS_NO_BACKEND;
+			break;
+		}
+	}
+	mutex_unlock(&poolid_mutex);
 }
 EXPORT_SYMBOL(__cleancache_init_shared_fs);
 
