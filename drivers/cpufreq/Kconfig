@@ -395,6 +395,12 @@ config CPU_FREQ_GOV_PHANTOM
 
 	  The governor is based on yankactive for phantom kernel.
 
+config CPU_INPUT_BOOST
+	bool "CPU Input Boost"
+	help
+	  Boosts the CPU on touchscreen and touchpad input. Boost frequencies and
+	  durations are calculated automatically.
+
 menu "x86 CPU frequency scaling drivers"
 depends on X86
 source "drivers/cpufreq/Kconfig.x86"
