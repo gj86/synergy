@@ -25,7 +25,6 @@ struct kiocb;
 #define KIOCB_C_COMPLETE	0x02
 
 #define KIOCB_KEY		0
-#define KIOCB_KERNEL_KEY		(~1U)
 
 #define kiocbTryLock(iocb)	test_and_set_bit(KIF_LOCKED, &(iocb)->ki_flags)
 
@@ -139,14 +138,6 @@ struct mm_struct;
 extern void exit_aio(struct mm_struct *mm);
 extern long do_io_submit(aio_context_t ctx_id, long nr,
 			 struct iocb __user *__user *iocbpp, bool compat);
-struct kiocb *aio_kernel_alloc(gfp_t gfp);
-void aio_kernel_free(struct kiocb *iocb);
-void aio_kernel_init_rw(struct kiocb *iocb, struct file *filp,
-			unsigned short op, void *ptr, size_t nr, loff_t off);
-void aio_kernel_init_callback(struct kiocb *iocb,
-			      void (*complete)(u64 user_data, long res),
-			      u64 user_data);
-int aio_kernel_submit(struct kiocb *iocb);
 void kiocb_set_cancel_fn(struct kiocb *req, kiocb_cancel_fn *cancel);
 #else
 static inline ssize_t wait_on_sync_kiocb(struct kiocb *iocb) { return 0; }
