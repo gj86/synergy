@@ -1806,9 +1806,11 @@ static void msmsdcc_do_cmdirq(struct msmsdcc_host *host, uint32_t status)
 		cmd->error = -ETIMEDOUT;
 	} else if ((status & MCI_CMDCRCFAIL && cmd->flags & MMC_RSP_CRC) &&
 			!host->tuning_in_progress) {
-		pr_err("%s: CMD%d: Command CRC error\n",
-			mmc_hostname(host->mmc), cmd->opcode);
-		msmsdcc_dump_sdcc_state(host);
+		if (cmd->opcode != 52) {
+			pr_err("%s: CMD%d: Command CRC error\n",
+				mmc_hostname(host->mmc), cmd->opcode);
+			msmsdcc_dump_sdcc_state(host);
+		}
 
 #if defined(CONFIG_BCM4335) || defined(CONFIG_BCM4335_MODULE) || defined(CONFIG_BCM4339) || defined(CONFIG_BCM4339_MODULE) || defined(CONFIG_BCM4339) || defined(CONFIG_BCM4354)
 		if( host->pdev->id == 2){
