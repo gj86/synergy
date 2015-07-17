@@ -27,6 +27,7 @@ config CPU_IDLE_GOV_LADDER
 	default y
 
 config CPU_IDLE_GOV_MENU
+	depends on CPU_IDLE && NO_HZ
 	bool "Menu governor (for tickless system)"
 	depends on CPU_IDLE
 	default y
