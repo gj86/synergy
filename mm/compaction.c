@@ -15,13 +15,10 @@
 #include <linux/sysctl.h>
 #include <linux/sysfs.h>
 #include <linux/balloon_compaction.h>
-<<<<<<< HEAD
 #ifdef CONFIG_STATE_NOTIFIER
 #include <linux/state_notifier.h>
 #endif
-=======
 #include <linux/page-isolation.h>
->>>>>>> 2bec332... mm: remove MIGRATE_ISOLATE check in hotpath
 #include "internal.h"
 
 #ifdef CONFIG_COMPACTION
@@ -314,6 +311,9 @@ static unsigned long isolate_freepages_block(struct compact_control *cc,
 isolate_fail:
 		if(strict)
 			break;
+		else
+			continue;
+
 	}
 
 	trace_mm_compaction_isolate_freepages(nr_scanned, total_isolated);
@@ -465,6 +465,7 @@ isolate_migratepages_range(struct zone *zone, struct compact_control *cc,
 	isolate_mode_t mode = 0;
 	unsigned long uninitialized_var(flags);
 	struct lruvec *lruvec;
+	unsigned long flags;
 	bool locked = false;
 	struct page *page = NULL, *valid_page = NULL;
 
