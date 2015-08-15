@@ -26,6 +26,7 @@
 #include <linux/init.h>
 #include <linux/module.h>
 #include <linux/vmpressure.h>
+#include <linux/slab.h>
 
 /*
  * The amount of windows we need to see for each pressure level before
