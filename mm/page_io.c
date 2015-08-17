@@ -1,4 +1,3 @@
-
 /*
  *  linux/mm/page_io.c
  *
@@ -20,8 +19,9 @@
 #include <linux/swapops.h>
 #include <linux/buffer_head.h>
 #include <linux/writeback.h>
-#include <linux/blkdev.h>
 #include <linux/frontswap.h>
+#include <linux/aio.h>
+#include <linux/blkdev.h>
 #include <asm/pgtable.h>
 
 static struct bio *get_swap_bio(gfp_t gfp_flags,
