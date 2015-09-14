@@ -351,7 +351,6 @@ int __attribute__((weak)) get_user_pages_fast(unsigned long start,
 }
 EXPORT_SYMBOL_GPL(get_user_pages_fast);
 
-
 /**
  * get_cmdline() - copy the cmdline value to a buffer.
  * @task:     the task whose cmdline value to copy.
@@ -401,15 +400,6 @@ out:
 	return res;
 }
 
-void kvfree(const void *addr)
-{
-	if (is_vmalloc_addr(addr))
-		vfree(addr);
-	else
-		kfree(addr);
-}
-EXPORT_SYMBOL(kvfree);
-
 unsigned long vm_mmap_pgoff(struct file *file, unsigned long addr,
 	unsigned long len, unsigned long prot,
 	unsigned long flag, unsigned long pgoff)
@@ -442,6 +432,15 @@ unsigned long vm_mmap(struct file *file, unsigned long addr,
 	return vm_mmap_pgoff(file, addr, len, prot, flag, offset >> PAGE_SHIFT);
 }
 EXPORT_SYMBOL(vm_mmap);
+
+void kvfree(const void *addr)
+{
+	if (is_vmalloc_addr(addr))
+		vfree(addr);
+	else
+		kfree(addr);
+}
+EXPORT_SYMBOL(kvfree);
 
 struct address_space *page_mapping(struct page *page)
 {
