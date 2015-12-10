@@ -559,7 +559,7 @@ static const struct dentry_operations exfat_dentry_ops = {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3,14,00)
 static int exfat_readdir(struct file *filp, struct dir_context *ctx)
 {
-	struct inode *inode = filp->f_path.dentry->d_inode;
+	struct inode *inode = file_inode(filp);
 	struct super_block *sb = inode->i_sb;
 	struct exfat_sb_info *sbi = EXFAT_SB(sb);
 	FS_INFO_T *p_fs = &(sbi->fs_info);
@@ -745,10 +745,8 @@ static long exfat_generic_ioctl(struct file *filp,
 								unsigned int cmd, unsigned long arg)
 #endif
 {
-#if EXFAT_CONFIG_KERNEL_DEBUG
-#if !(LINUX_VERSION_CODE < KERNEL_VERSION(2,6,36))
-	struct inode *inode = filp->f_dentry->d_inode;
-#endif
+	struct inode *inode = file_inode(filp);
+#ifdef CONFIG_EXFAT_KERNEL_DEBUG
 	unsigned int flags;
 #endif
 

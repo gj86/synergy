@@ -356,7 +356,7 @@ static int lstats_open(struct inode *inode, struct file *file)
 static ssize_t lstats_write(struct file *file, const char __user *buf,
 			    size_t count, loff_t *offs)
 {
-	struct task_struct *task = get_proc_task(file->f_dentry->d_inode);
+	struct task_struct *task = get_proc_task(file_inode(file));
 
 	if (!task)
 		return -ESRCH;
@@ -582,7 +582,7 @@ static const struct inode_operations proc_def_inode_operations = {
 static ssize_t proc_info_read(struct file * file, char __user * buf,
 			  size_t count, loff_t *ppos)
 {
-	struct inode * inode = file->f_path.dentry->d_inode;
+	struct inode * inode = file_inode(file);
 	unsigned long page;
 	ssize_t length;
 	struct task_struct *task = get_proc_task(inode);
@@ -648,7 +648,7 @@ static const struct file_operations proc_single_file_operations = {
 
 static int __mem_open(struct inode *inode, struct file *file, unsigned int mode)
 {
-	struct task_struct *task = get_proc_task(file->f_path.dentry->d_inode);
+	struct task_struct *task = get_proc_task(file_inode(file));
 	struct mm_struct *mm;
 
 	if (!task)
@@ -850,7 +850,7 @@ static const struct file_operations proc_environ_operations = {
 static ssize_t oom_adjust_read(struct file *file, char __user *buf,
 				size_t count, loff_t *ppos)
 {
-	struct task_struct *task = get_proc_task(file->f_path.dentry->d_inode);
+	struct task_struct *task = get_proc_task(file_inode(file));
 	char buffer[PROC_NUMBUF];
 	size_t len;
 	int oom_adjust = OOM_DISABLE;
@@ -897,7 +897,7 @@ static ssize_t oom_adjust_write(struct file *file, const char __user *buf,
 		goto out;
 	}
 
-	task = get_proc_task(file->f_path.dentry->d_inode);
+	task = get_proc_task(file_inode(file));
 	if (!task) {
 		err = -ESRCH;
 		goto out;
@@ -1057,7 +1057,7 @@ static const struct file_operations proc_hotness_adjust_operations = {
 static ssize_t oom_score_adj_read(struct file *file, char __user *buf,
 					size_t count, loff_t *ppos)
 {
-	struct task_struct *task = get_proc_task(file->f_path.dentry->d_inode);
+	struct task_struct *task = get_proc_task(file_inode(file));
 	char buffer[PROC_NUMBUF];
 	short oom_score_adj = OOM_SCORE_ADJ_MIN;
 	unsigned long flags;
@@ -1100,7 +1100,7 @@ static ssize_t oom_score_adj_write(struct file *file, const char __user *buf,
 		goto out;
 	}
 
-	task = get_proc_task(file->f_path.dentry->d_inode);
+	task = get_proc_task(file_inode(file));
 	if (!task) {
 		err = -ESRCH;
 		goto out;
@@ -1161,7 +1161,7 @@ static const struct file_operations proc_oom_score_adj_operations = {
 static ssize_t proc_loginuid_read(struct file * file, char __user * buf,
 				  size_t count, loff_t *ppos)
 {
-	struct inode * inode = file->f_path.dentry->d_inode;
+	struct inode * inode = file_inode(file);
 	struct task_struct *task = get_proc_task(inode);
 	ssize_t length;
 	char tmpbuf[TMPBUFLEN];
@@ -1177,7 +1177,7 @@ static ssize_t proc_loginuid_read(struct file * file, char __user * buf,
 static ssize_t proc_loginuid_write(struct file * file, const char __user * buf,
 				   size_t count, loff_t *ppos)
 {
-	struct inode * inode = file->f_path.dentry->d_inode;
+	struct inode * inode = file_inode(file);
 	char *page, *tmp;
 	ssize_t length;
 	uid_t loginuid;
@@ -1228,7 +1228,7 @@ static const struct file_operations proc_loginuid_operations = {
 static ssize_t proc_sessionid_read(struct file * file, char __user * buf,
 				  size_t count, loff_t *ppos)
 {
-	struct inode * inode = file->f_path.dentry->d_inode;
+	struct inode * inode = file_inode(file);
 	struct task_struct *task = get_proc_task(inode);
 	ssize_t length;
 	char tmpbuf[TMPBUFLEN];
@@ -1251,7 +1251,7 @@ static const struct file_operations proc_sessionid_operations = {
 static ssize_t proc_fault_inject_read(struct file * file, char __user * buf,
 				      size_t count, loff_t *ppos)
 {
-	struct task_struct *task = get_proc_task(file->f_dentry->d_inode);
+	struct task_struct *task = get_proc_task(file_inode(file));
 	char buffer[PROC_NUMBUF];
 	size_t len;
 	int make_it_fail;
@@ -1283,7 +1283,7 @@ static ssize_t proc_fault_inject_write(struct file * file,
 	make_it_fail = simple_strtol(strstrip(buffer), &end, 0);
 	if (*end)
 		return -EINVAL;
-	task = get_proc_task(file->f_dentry->d_inode);
+	task = get_proc_task(file_inode(file));
 	if (!task)
 		return -ESRCH;
 	task->make_it_fail = make_it_fail;
@@ -1323,7 +1323,7 @@ static ssize_t
 sched_write(struct file *file, const char __user *buf,
 	    size_t count, loff_t *offset)
 {
-	struct inode *inode = file->f_path.dentry->d_inode;
+	struct inode *inode = file_inode(file);
 	struct task_struct *p;
 
 	p = get_proc_task(inode);
@@ -1374,7 +1374,7 @@ static ssize_t
 sched_autogroup_write(struct file *file, const char __user *buf,
 	    size_t count, loff_t *offset)
 {
-	struct inode *inode = file->f_path.dentry->d_inode;
+	struct inode *inode = file_inode(file);
 	struct task_struct *p;
 	char buffer[PROC_NUMBUF];
 	int nice;
@@ -1429,7 +1429,7 @@ static const struct file_operations proc_pid_sched_autogroup_operations = {
 static ssize_t comm_write(struct file *file, const char __user *buf,
 				size_t count, loff_t *offset)
 {
-	struct inode *inode = file->f_path.dentry->d_inode;
+	struct inode *inode = file_inode(file);
 	struct task_struct *p;
 	char buffer[TASK_COMM_LEN];
 
@@ -2631,7 +2631,7 @@ out_no_task:
 static ssize_t proc_pid_attr_read(struct file * file, char __user * buf,
 				  size_t count, loff_t *ppos)
 {
-	struct inode * inode = file->f_path.dentry->d_inode;
+	struct inode * inode = file_inode(file);
 	char *p = NULL;
 	ssize_t length;
 	struct task_struct *task = get_proc_task(inode);
@@ -2652,7 +2652,7 @@ static ssize_t proc_pid_attr_read(struct file * file, char __user * buf,
 static ssize_t proc_pid_attr_write(struct file * file, const char __user * buf,
 				   size_t count, loff_t *ppos)
 {
-	struct inode * inode = file->f_path.dentry->d_inode;
+	struct inode * inode = file_inode(file);
 	char *page;
 	ssize_t length;
 	struct task_struct *task = get_proc_task(inode);
@@ -2741,7 +2741,7 @@ static const struct inode_operations proc_attr_dir_inode_operations = {
 static ssize_t proc_coredump_filter_read(struct file *file, char __user *buf,
 					 size_t count, loff_t *ppos)
 {
-	struct task_struct *task = get_proc_task(file->f_dentry->d_inode);
+	struct task_struct *task = get_proc_task(file_inode(file));
 	struct mm_struct *mm;
 	char buffer[PROC_NUMBUF];
 	size_t len;
@@ -2793,7 +2793,7 @@ static ssize_t proc_coredump_filter_write(struct file *file,
 		goto out_no_task;
 
 	ret = -ESRCH;
-	task = get_proc_task(file->f_dentry->d_inode);
+	task = get_proc_task(file_inode(file));
 	if (!task)
 		goto out_no_task;
 
