@@ -717,6 +717,13 @@ int msm_vidc_prepare_buf(void *instance, struct v4l2_buffer *b)
 	if (!inst || !b || !valid_v4l2_buffer(b, inst))
 		return -EINVAL;
 
+	if (!V4L2_TYPE_IS_MULTIPLANAR(b->type) || !b->length ||
+		(b->length > VIDEO_MAX_PLANES)) {
+		dprintk(VIDC_ERR, "%s: wrong input params\n",
+				__func__);
+		return -EINVAL;
+	}
+
 	if (is_dynamic_output_buffer_mode(b, inst)) {
 		dprintk(VIDC_ERR, "%s: not supported in dynamic buffer mode\n",
 				__func__);
@@ -867,9 +874,10 @@ int msm_vidc_qbuf(void *instance, struct v4l2_buffer *b)
 	if (!inst || !b || !valid_v4l2_buffer(b, inst))
 		return -EINVAL;
 
-	if (b->length > VIDEO_MAX_PLANES) {
-		dprintk(VIDC_ERR, "num planes exceeds max: %d\n",
-			b->length);
+	if (!V4L2_TYPE_IS_MULTIPLANAR(b->type) || !b->length ||
+		(b->length > VIDEO_MAX_PLANES)) {
+		dprintk(VIDC_ERR, "%s: wrong input params\n",
+				__func__);
 		return -EINVAL;
 	}
 
@@ -949,9 +957,10 @@ int msm_vidc_dqbuf(void *instance, struct v4l2_buffer *b)
 	if (!inst || !b || !valid_v4l2_buffer(b, inst))
 		return -EINVAL;
 
-	if (b->length > VIDEO_MAX_PLANES) {
-		dprintk(VIDC_ERR, "num planes exceed maximum: %d\n",
-			b->length);
+	if (!V4L2_TYPE_IS_MULTIPLANAR(b->type) || !b->length ||
+		(b->length > VIDEO_MAX_PLANES)) {
+		dprintk(VIDC_ERR, "%s: wrong input params\n",
+				__func__);
 		return -EINVAL;
 	}
 
