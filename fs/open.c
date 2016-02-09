@@ -60,6 +60,7 @@ int do_truncate2(struct vfsmount *mnt, struct dentry *dentry, loff_t length,
 	mutex_unlock(&dentry->d_inode->i_mutex);
 	return ret;
 }
+
 int do_truncate(struct dentry *dentry, loff_t length, unsigned int time_attrs,
 	struct file *filp)
 {
@@ -69,18 +70,9 @@ int do_truncate(struct dentry *dentry, loff_t length, unsigned int time_attrs,
 long vfs_truncate(struct path *path, loff_t length)
 {
 	struct inode *inode;
-	struct vfsmount *mnt;
 	long error;
 
-	error = -EINVAL;
-	if (length < 0)	/* sorry, but loff_t says... */
-		goto out;
-
-	error = user_path(pathname, &path);
-	if (error)
-		goto out;
 	inode = path->dentry->d_inode;
-	mnt = path->mnt;
 
 	/* For directories it's -EISDIR, for other non-regulars - -EINVAL */
 	if (S_ISDIR(inode->i_mode))
@@ -92,7 +84,7 @@ long vfs_truncate(struct path *path, loff_t length)
 	if (error)
 		goto out;
 
-	error = inode_permission2(mnt, inode, MAY_WRITE);
+	error = inode_permission(inode, MAY_WRITE);
 	if (error)
 		goto mnt_drop_write_and_out;
 
@@ -116,7 +108,7 @@ long vfs_truncate(struct path *path, loff_t length)
 	if (!error)
 		error = security_path_truncate(path);
 	if (!error)
-		error = do_truncate2(mnt, path->dentry, length, 0, NULL);
+		error = do_truncate(path->dentry, length, 0, NULL);
 
 put_write_and_out:
 	put_write_access(inode);
