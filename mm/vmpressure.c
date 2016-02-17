@@ -237,8 +237,15 @@ static void vmpressure_work_fn(struct work_struct *work)
 	reclaimed = vmpr->reclaimed;
 	vmpr->scanned = 0;
 	vmpr->reclaimed = 0;
+	pressure = vmpressure_calc_pressure(scanned, reclaimed);
+	level = vmpressure_level(pressure);
+	if (++vmpr->nr_windows[level] == vmpressure_windows_needed[level]) {
+		vmpr->nr_windows[level] = 0;
+		report = true;
+	}
 	spin_unlock(&vmpr->sr_lock);
-
+	if (!report)
+		return;
 	do {
 		if (vmpressure_event(vmpr, level))
 			break;
@@ -286,9 +293,10 @@ void vmpressure_memcg(gfp_t gfp, struct mem_cgroup *memcg,
 	vmpr->scanned += scanned;
 	vmpr->reclaimed += reclaimed;
 	scanned = vmpr->scanned;
+	window_size = vmpr->window_size;
 	spin_unlock(&vmpr->sr_lock);
 
-	if (scanned < vmpressure_win)
+	if (scanned < window_size)
 		return;
 	schedule_work(&vmpr->work);
 }
@@ -317,6 +325,7 @@ void vmpressure_global(gfp_t gfp, unsigned long scanned,
 	stall = vmpr->stall;
 	scanned = vmpr->scanned;
 	reclaimed = vmpr->reclaimed;
+	window_size = vmpr->window_size;
 	spin_unlock(&vmpr->sr_lock);
 
 	if (scanned < window_size)
