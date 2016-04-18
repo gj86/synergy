@@ -364,7 +364,7 @@ int zbud_alloc(struct zbud_pool *pool, size_t size, gfp_t gfp,
 	if (size > PAGE_SIZE - ZHDR_SIZE_ALIGNED - CHUNK_SIZE)
 		return -ENOSPC;
 	chunks = size_to_chunks(size);
-	spin_lock_bh(&pool->lock);
+	spin_lock(&pool->lock);
 
 	/* First, try to find an unbuddied zbud page. */
 	zhdr = NULL;
@@ -383,11 +383,11 @@ int zbud_alloc(struct zbud_pool *pool, size_t size, gfp_t gfp,
 	}
 
 	/* Couldn't find unbuddied zbud page, create new one */
-	spin_unlock_bh(&pool->lock);
+	spin_unlock(&pool->lock);
 	page = alloc_page(gfp);
 	if (!page)
 		return -ENOMEM;
-	spin_lock_bh(&pool->lock);
+	spin_lock(&pool->lock);
 	pool->pages_nr++;
 	zhdr = init_zbud_page(page);
 	bud = FIRST;
@@ -415,7 +415,7 @@ found:
 	*handle = encode_handle(zhdr, bud);
 	if ((gfp & __GFP_ZERO) && found)
 		memset((void *)*handle, 0, size);
-	spin_unlock_bh(&pool->lock);
+	spin_unlock(&pool->lock);
 
 	return 0;
 }
@@ -436,7 +436,7 @@ void zbud_free(struct zbud_pool *pool, unsigned long handle)
 	int freechunks;
 	unsigned long flags;
 
-	spin_lock_bh(&pool->lock);
+	spin_lock(&pool->lock);
 	zhdr = handle_to_zbud_header(handle);
 
 	/* If first buddy, handle will be page aligned */
@@ -447,7 +447,7 @@ void zbud_free(struct zbud_pool *pool, unsigned long handle)
 
 	if (zhdr->under_reclaim) {
 		/* zbud page is under reclaim, reclaim will free */
-		spin_unlock_bh(&pool->lock);
+		spin_unlock(&pool->lock);
 		return;
 	}
 
@@ -465,7 +465,7 @@ void zbud_free(struct zbud_pool *pool, unsigned long handle)
 		list_add(&zhdr->buddy, &pool->unbuddied[freechunks]);
 	}
 
-	spin_unlock_bh(&pool->lock);
+	spin_unlock(&pool->lock);
 }
 
 /**
@@ -510,10 +510,10 @@ int zbud_reclaim_page(struct zbud_pool *pool, unsigned int retries)
 	unsigned long first_handle = 0, last_handle = 0;
 	unsigned long flags;
 
-	spin_lock_bh(&pool->lock);
+	spin_lock(&pool->lock);
 	if (!pool->ops || !pool->ops->evict || list_empty(&pool->lru) ||
 			retries == 0) {
-		spin_unlock_bh(&pool->lock);
+		spin_unlock(&pool->lock);
 		return -EINVAL;
 	}
 	for (i = 0; i < retries; i++) {
@@ -532,7 +532,7 @@ int zbud_reclaim_page(struct zbud_pool *pool, unsigned int retries)
 			first_handle = encode_handle(zhdr, FIRST);
 		if (zhdr->last_chunks)
 			last_handle = encode_handle(zhdr, LAST);
-		spin_unlock_bh(&pool->lock);
+		spin_unlock(&pool->lock);
 
 		/* Issue the eviction callback(s) */
 		if (first_handle) {
@@ -546,7 +546,7 @@ int zbud_reclaim_page(struct zbud_pool *pool, unsigned int retries)
 				goto next;
 		}
 next:
-		spin_lock_bh(&pool->lock);
+		spin_lock(&pool->lock);
 		zhdr->under_reclaim = false;
 		if (zhdr->first_chunks == 0 && zhdr->last_chunks == 0) {
 			/*
@@ -555,7 +555,7 @@ next:
 			 */
 			free_zbud_page(zhdr);
 			pool->pages_nr--;
-			spin_unlock_bh(&pool->lock);
+			spin_unlock(&pool->lock);
 			return 0;
 		} else if (zhdr->first_chunks == 0 ||
 				zhdr->last_chunks == 0) {
@@ -570,7 +570,7 @@ next:
 		/* add to beginning of LRU */
 		list_add(&zhdr->lru, &pool->lru);
 	}
-	spin_unlock_bh(&pool->lock);
+	spin_unlock(&pool->lock);
 	return -EAGAIN;
 }
 
