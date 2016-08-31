@@ -277,9 +277,7 @@ config ARCH_MSM8974
 	select ARM_HAS_SG_CHAIN
 	select MSM_RUN_QUEUE_STATS
 	select MEMORY_HOLE_CARVEOUT
-	select MSM_RPM_STATS_LOG
 	select QMI_ENCDEC
-	select MSM_RPM_LOG
 	select ARCH_WANT_KMAP_ATOMIC_FLUSH
 	select KRAIT_REGULATOR
 	select ENABLE_VMALLOC_SAVINGS
@@ -796,8 +794,8 @@ config SEC_MEGA2_PROJECT
         help
          Common flag for all the MEGA2 Models and variants. Please use this flag for all
 	 the features common in all the MEGA2 Variants(3G,LTE,Wifi & Carrier).
-	 
-config SEC_AFYONLTE_COMMON 
+
+config SEC_AFYONLTE_COMMON
 	bool "AFYON LTE Projects"
 	default n
         help
@@ -873,7 +871,7 @@ config SEC_MATISSELTE_COMMON
         help
          Common flag for all the Matissei LTE Models and variants. Please use this flag for all
 	 the features common in all the Matisse LTE Variants(EUR, ATT, VZW etc., different carriers).
-	 
+
 config SEC_ATLANTICLTE_COMMON
 	bool "Atlantic LTE Common"
         default n
@@ -928,7 +926,7 @@ config SEC_FRESCONEO_PROJECT
         default n
         help
          Common flag for all the Victor Models and variants. Please use this flag for all
-	 the features common in all the Fresconeo Variants(3G,LTE,Wifi & Carrier).	 
+	 the features common in all the Fresconeo Variants(3G,LTE,Wifi & Carrier).
 
 config SEC_GNOTE_PROJECT
 	bool "Grandnote Projects"
@@ -963,7 +961,7 @@ config MACH_MATISSELTE_ATT
         help
          MSM8226 MODEL MATISSE LTE ATT TAB Specific changes for differentiating
          it with the other carrier models on the same MSM8x26 chipset.
-	 
+
 config MACH_MATISSELTE_VZW
 	bool "MATISSE LTE VZW TAB"
         default n
@@ -984,40 +982,40 @@ config MACH_MILLETWIFI_OPEN
         help
          MSM8226 Model Millet Wifi Euro Open specific changes for differentiating
          it with the other models on the same MSM8x26 chipset.
-	 
+
 config MACH_MILLETWIFIUS_OPEN
 	bool "MILLET WIFI US TAB"
         default n
         help
          MSM8226 Model Millet Wifi US Open Tab specific changes for differentiating
          it with the other models on the same MSM8x26 chipset.
-	 
+
 config MACH_MATISSEWIFI_OPEN
 	bool "MATISSE WIFI EUR TAB"
         default n
         help
          MSM8226 MODEL MATISSE WIFI EUR TAB Specific changes for differentiating
          it with the other models on the same MSM8x26 chipset.
-	 
+
 config MACH_MATISSEWIFIUS_OPEN
 	bool "MATISSE WIFI US Tab"
         default n
         help
-         MSM8226 Model Matisse Wifi US Open Tab Specific flag for changes for 
+         MSM8226 Model Matisse Wifi US Open Tab Specific flag for changes for
 	 differentiating it with the other models on the same MSM8x26 chipset.
 
 config MACH_MATISSEWIFIUS_GOOGLE
 	bool "MATISSE WIFI US Google Tab"
         default n
         help
-         MSM8226 Model Matisse Wifi US Google Tab Specific flag for changes for 
+         MSM8226 Model Matisse Wifi US Google Tab Specific flag for changes for
 	 differentiating it with the other models on the same MSM8x26 chipset.
 
 config MACH_MATISSEWIFIUS_AMPLIFY
 	bool "MATISSE WIFI US AMPLIFY Tab"
         default n
         help
-         MSM8226 Model Matisse Wifi US AMPLIFY Tab Specific flag for changes for 
+         MSM8226 Model Matisse Wifi US AMPLIFY Tab Specific flag for changes for
 	 differentiating it with the other models on the same MSM8x26 chipset.
 
 config MACH_MILLET3G_EUR
@@ -1252,7 +1250,7 @@ config MACH_VICTORLTE_CTC
         help
          MSM8226 MODEL Victor LTE CTC  TAB Specific changes for differentiating
          it with the other models on the same MSM8x26 chipset.
-         
+
 config MACH_VASTALTE_CTC
 	bool "VASTA LTE CTC"
 	default n
@@ -1265,7 +1263,7 @@ config MACH_FRESCONEOLTE_CTC
         default n
         help
          MSM8226 MODEL Victor LTE CMCC  TAB Specific changes for differentiating
-         it with the other models on the same MSM8x26 chipset.         
+         it with the other models on the same MSM8x26 chipset.
 
 config MACH_MEGA23GEUR_OPEN
 	bool "MEGA23G EUR"
@@ -1283,7 +1281,7 @@ config MACH_GNOTELTEDS_OPEN
 	bool "Grandnote LTE DS"
         default n
         help
-         MSM8228 Model Grandnote LTE DS Euro Open Specific flag. 
+         MSM8228 Model Grandnote LTE DS Euro Open Specific flag.
 
 config MACH_T10_3G_OPEN
         bool "T10 3G OPEN TAB"
@@ -2074,12 +2072,12 @@ config MACH_MONDRIAN_LTE
 	bool "Samsung model MONDRIAN_LTE"
 	help
 	  Support for Samsung MONDRIAN_LTE device.
-	  
+
 config MACH_MONDRIANATT
 	default n
 	bool "Samsung model MONDRIANATT"
 	help
-	  Support for Samsung MONDRIANATT device.	  
+	  Support for Samsung MONDRIANATT device.
 
 config MACH_MONDRIAN_WIFI
 	default n
@@ -2176,7 +2174,7 @@ config MACH_HLTEEUR
 	select SEC_H_PROJECT
 	help
 	  Support for Samsung HLTEEUR device.
-	  
+
 config MACH_HLTECHNTWU
 	default n
 	bool "Samsung model HLTECHNTWU"
@@ -2190,7 +2188,7 @@ config MACH_H3G_CHN_OPEN
 	select SEC_H_PROJECT
 	help
 	  Support for Samsung H3G CHN OPEN device.
-	  
+
 config MACH_H3G_CHN_CMCC
 	default n
 	bool "Samsung model H3G_CHN_CMCC"
@@ -2210,15 +2208,15 @@ config MACH_H3GDUOS
 	bool "Samsung model H3GDUOS"
 	select SEC_H_PROJECT
 	help
-	  Support for Samsung H3GDUOS device.	  
+	  Support for Samsung H3GDUOS device.
 
 config MACH_H3GDUOS_CU
 	default n
 	bool "Samsung model H3GDUOS_CU"
 	select SEC_H_PROJECT
 	help
-	  Support for Samsung H3GDUOS_CU device.  
-	  
+	  Support for Samsung H3GDUOS_CU device.
+
 config MACH_HLTESPR
 	default n
 	bool "Samsung model HLTESPR"
@@ -2253,7 +2251,7 @@ config MACH_HLTEAUS
 	select SEC_H_PROJECT
 	help
 	  Support for Samsung HLTEAUS device.
-	  
+
 config SEC_F_PROJECT
 	default n
 	bool "Samsung F project"
@@ -2271,7 +2269,7 @@ config SEC_JACTIVE_PROJECT
 	bool "Samsung Jactive project"
 	help
 	  Support for Samsung Jactive series.
-	  
+
 config SEC_JS_PROJECT
 	default n
 	bool "Samsung JS project"
@@ -2310,7 +2308,7 @@ config MACH_HLTE_CHN_TDOPEN
 	select SEC_H_PROJECT
 	help
 	  Support for Samsung HLTE_CHN_TDOPEN device.
-	  
+
 config MACH_JSGLTE_CHN_CMCC
 	default n
 	bool "Samsung model JSGLTE_CHN_CMCC"
@@ -4075,7 +4073,7 @@ config SECURE_MPU_LOCK
 	bool "TZ protect the first 16KB with MPU"
 	default n
 	help
-		Secure side protect the first 16KB with MPU and Non-secure remove it 
+		Secure side protect the first 16KB with MPU and Non-secure remove it
 		by memblock-reserve
 
 config MSM_WATCHDOG
@@ -4786,7 +4784,7 @@ config TIMA_RKP_COHERENT_TT
        bool
        depends on TIMA_RKP_30
        depends on ARCH_MSM8974PRO
-       default y 
+       default y
        help
          RKP cache coherency feature- depends on corresponding TZ RKP code!!!
 
@@ -4906,7 +4904,7 @@ config EXTEND_SERIAL_NUM_16
 config MUIC_RESET_PIN_ENABLE
         bool "Sudden mUIC reset issue W/A"
         default n
-        help 
+        help
                 This request is from H/W team
 		In case of mUIC voltage drop, mUIC will be reset
 
