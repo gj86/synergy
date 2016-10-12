@@ -24,7 +24,7 @@
 &soc {
 	qcom,ion {
 		qcom,ion-heap@16 { /* Camera*/
-			qcom,memory-reservation-size = <0x1700000>;
+			qcom,memory-reservation-size = <0x0>;
 		};
 		qcom,ion-heap@28 { /* AUDIO HEAP */
 			qcom,memory-reservation-size = <0x314000>;
