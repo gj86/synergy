@@ -12,7 +12,7 @@
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
  * published by the Free Software Foundation.
- * 
+ *
  * Created by Alucard_24@xda
  */
 
@@ -267,7 +267,7 @@ static ssize_t store_sampling_rate(struct kobject *a, struct attribute *b,
 		return -EINVAL;
 
 	input = max(input,10000);
-	
+
 	if (input == atomic_read(&darkness_tuners_ins.sampling_rate))
 		return count;
 
@@ -430,7 +430,7 @@ static void darkness_check_cpu(struct cpufreq_darkness_cpuinfo *this_darkness_cp
 	unsigned int cpu;
 
 	cpu = this_darkness_cpuinfo->cpu;
-	cpu_policy = this_darkness_cpuinfo->cur_policy;	
+	cpu_policy = this_darkness_cpuinfo->cur_policy;
 
 	cur_idle_time = get_cpu_idle_time_us(cpu, NULL);
 	cur_idle_time += get_cpu_iowait_time_us(cpu, &cur_wall_time);
@@ -586,7 +586,7 @@ static int cpufreq_governor_darkness(struct cpufreq_policy *policy,
 		INIT_DEFERRABLE_WORK(&this_darkness_cpuinfo->work, do_darkness_timer);
 		mod_delayed_work_on(this_darkness_cpuinfo->cpu, system_wq, &this_darkness_cpuinfo->work, delay);
 #else
-		INIT_DELAYED_WORK_DEFERRABLE(&this_darkness_cpuinfo->work, do_darkness_timer);
+		INIT_DEFERRABLE_WORK(&this_darkness_cpuinfo->work, do_darkness_timer);
 		queue_delayed_work_on(this_darkness_cpuinfo->cpu, system_wq, &this_darkness_cpuinfo->work, delay);
 #endif
 
@@ -602,10 +602,10 @@ static int cpufreq_governor_darkness(struct cpufreq_policy *policy,
 
 		if (!darkness_enable) {
 			sysfs_remove_group(cpufreq_global_kobject,
-					   &darkness_attr_group);			
+					   &darkness_attr_group);
 		}
 		mutex_unlock(&darkness_mutex);
-		
+
 		break;
 
 	case CPUFREQ_GOV_LIMITS:

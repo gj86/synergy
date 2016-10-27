@@ -316,8 +316,13 @@ static inline unsigned int get_timer_delay(void) {
 static inline void dbs_timer_init(struct smartmax_eps_info_s *this_smartmax_eps) {
 	int delay = get_timer_delay();
 
+<<<<<<< HEAD
 	INIT_DELAYED_WORK_DEFERRABLE(&this_smartmax_eps->work, do_dbs_timer);
 	schedule_delayed_work_on(this_smartmax_eps->cpu, &this_smartmax_eps->work, delay);
+=======
+	INIT_DEFERRABLE_WORK(&this_smartmax->work, do_dbs_timer);
+	schedule_delayed_work_on(this_smartmax->cpu, &this_smartmax->work, delay);
+>>>>>>> 110df29... workqueue: make deferrable delayed_work
 }
 
 static inline void dbs_timer_exit(struct smartmax_eps_info_s *this_smartmax_eps) {

@@ -252,6 +252,16 @@ static inline unsigned int get_timer_delay(void) {
 	return delay;
 }
 
+<<<<<<< HEAD
+=======
+static inline void dbs_timer_init(struct smartmax_info_s *this_smartmax) {
+	int delay = get_timer_delay();
+
+	INIT_DEFERRABLE_WORK(&this_smartmax->work, do_dbs_timer);
+	schedule_delayed_work_on(this_smartmax->cpu, &this_smartmax->work, delay);
+}
+
+>>>>>>> 110df29... workqueue: make deferrable delayed_work
 static inline void dbs_timer_exit(struct smartmax_info_s *this_smartmax) {
 	cancel_delayed_work_sync(&this_smartmax->work);
 }
