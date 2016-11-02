@@ -19,7 +19,10 @@
 #include <linux/io.h>
 #include <linux/ftrace.h>
 #include <linux/msm_adreno_devfreq.h>
-#include <linux/powersuspend.h>
+#ifdef CONFIG_STATE_NOTIFIER
+#include <linux/state_notifier.h>
+static struct notifier_block adreno_tz_state_notif;
+#endif
 #include <mach/scm.h>
 #include "governor.h"
 
@@ -59,12 +62,11 @@ static DEFINE_SPINLOCK(tz_lock);
 #define DEVFREQ_ADRENO_TZ	"msm-adreno-tz"
 #define TAG "msm_adreno_tz: "
 
-/* Boolean to detect if pm has entered suspend mode */
-static bool suspended = false;
-static bool power_suspended = false;
-
 static unsigned int tz_target = TARGET;
 static unsigned int tz_cap = CAP;
+
+/* Boolean to detect if panel has gone off */
+static bool power_suspended = false;
 
 /* Trap into the TrustZone, and call funcs there. */
 static int __secure_tz_entry2(u32 cmd, u32 val1, u32 val2)
@@ -107,8 +109,9 @@ extern int simple_gpu_algorithm(int level, int min_level, int max_level,
 		 unsigned int busy_time);
 #endif
 #ifdef CONFIG_ADRENO_IDLER
+
 extern int adreno_idler(struct devfreq_dev_status stats, struct devfreq *devfreq,
-		 unsigned long *freq);
+	 	 unsigned long *freq);
 #endif
 
 static int tz_get_target_freq(struct devfreq *devfreq, unsigned long *freq,
@@ -147,7 +150,7 @@ static int tz_get_target_freq(struct devfreq *devfreq, unsigned long *freq,
 	 * Force to use & record as min freq when system has
 	 * entered pm-suspend or screen-off state.
 	 */
-	if (suspended || power_suspended) {
+	if (power_suspended) {
 		*freq = devfreq->min_freq;
 		return 0;
 	}
@@ -365,8 +368,6 @@ static int tz_resume(struct devfreq *devfreq)
 
 	freq = profile->initial_freq;
 
-	suspended = false;
-
 	return profile->target(devfreq->dev.parent, &freq, 0);
 }
 
@@ -375,14 +376,10 @@ static int tz_suspend(struct devfreq *devfreq)
 	struct devfreq_msm_adreno_tz_data *priv = devfreq->data;
 
 #ifdef CONFIG_ADRENO_IDLER
-	suspended = true;
-
 	__secure_tz_entry2(TZ_RESET_ID, 0, 0);
 #else
 	struct devfreq_dev_profile *profile = devfreq->profile;
 	unsigned long freq;
-
-	suspended = true;
 #endif
 
 	priv->bin.total_time = 0;
@@ -500,26 +497,33 @@ static struct devfreq_governor msm_adreno_tz = {
 	.event_handler = tz_handler,
 };
 
-static void tz_early_suspend(struct power_suspend *handler)
+#ifdef CONFIG_STATE_NOTIFIER
+static int state_notifier_callback(struct notifier_block *this,
+				unsigned long event, void *data)
 {
-	power_suspended = true;
-	return;
-}
+	switch (event) {
+		case STATE_NOTIFIER_ACTIVE:
+			power_suspended = false;
+			break;
+		case STATE_NOTIFIER_SUSPEND:
+			power_suspended = true;
+			break;
+		default:
+			break;
+	}
 
-static void tz_late_resume(struct power_suspend *handler)
-{
-	power_suspended = false;
-	return;
+	return NOTIFY_OK;
 }
-
-static struct power_suspend tz_power_suspend = {
-	.suspend = tz_early_suspend,
-	.resume = tz_late_resume,
-};
+#endif
 
 static int __init msm_adreno_tz_init(void)
 {
-	register_power_suspend(&tz_power_suspend);
+#ifdef CONFIG_STATE_NOTIFIER
+	adreno_tz_state_notif.notifier_call = state_notifier_callback;
+	if (state_register_client(&adreno_tz_state_notif))
+		pr_err("%s: Failed to register State notifier callback\n",
+			__func__);
+#endif
 	return devfreq_add_governor(&msm_adreno_tz);
 }
 subsys_initcall(msm_adreno_tz_init);
@@ -527,6 +531,11 @@ subsys_initcall(msm_adreno_tz_init);
 static void __exit msm_adreno_tz_exit(void)
 {
 	int ret;
+
+#ifdef CONFIG_STATE_NOTIFIER
+	state_unregister_client(&adreno_tz_state_notif);
+	adreno_tz_state_notif.notifier_call = NULL;
+#endif
 	ret = devfreq_remove_governor(&msm_adreno_tz);
 	if (ret)
 		pr_err(TAG "failed to remove governor %d\n", ret);
