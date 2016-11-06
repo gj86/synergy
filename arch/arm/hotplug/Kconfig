@@ -1,4 +1,4 @@
-config INTELLI_PLUG
+config INTELLI_HOTPLUG
         bool "Enable intelli-plug cpu hotplug driver"
         default y
         help
@@ -11,7 +11,7 @@ config MSM_HOTPLUG
 	help
 	  The MSM hotplug driver controls on-/offlining of additional cores based
 	  on current cpu load.
-	  
+
 config BRICKED_HOTPLUG
 	bool "Enable kernel based mpdecision"
 	depends on MSM_RUN_QUEUE_STATS
@@ -37,7 +37,7 @@ config ZEN_DECISION
 	  - Remove cores when screen goes off
 	  - Enable cores when screen goes on
 	  - Raise CPU_MIN_FREQ to a fixed value for a few seconds on input
-  
+
 	  Zen Decision allows some of the MPDecison functions to be delegated
 	  to the kernel. Right now these are
 	  - Remove cores when screen goes off (after a configurable amount of time)
@@ -45,5 +45,5 @@ config ZEN_DECISION
 
 	  Zen Decision assumes the input boost function of MPDecision should be
 	  delegated to somewhere else in the kernel (Such as in CPU-BOOST)
-	  
+
 	  Enable this if you'd like the ability to disable MPDecision.
