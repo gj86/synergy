@@ -22,6 +22,10 @@
 #include <linux/of.h>
 #include <linux/cpumask.h>
 
+#ifdef CONFIG_CPU_VOLTAGE_TABLE
+#include <linux/cpufreq.h>
+#endif
+
 #include <asm/cputype.h>
 
 #include <mach/rpm-regulator-smd.h>
@@ -600,6 +604,86 @@ module_param_string(table_name, table_name, sizeof(table_name), S_IRUGO);
 static unsigned int pvs_config_ver;
 module_param(pvs_config_ver, uint, S_IRUGO);
 
+#ifdef CONFIG_CPU_VOLTAGE_TABLE
+
+#define CPU_VDD_MIN	 600
+#define CPU_VDD_MAX	1350
+
+extern bool is_used_by_scaling(unsigned int freq);
+
+static unsigned int cnt;
+
+ssize_t show_UV_mV_table(struct cpufreq_policy *policy, char *buf)
+{
+	int i, freq, len = 0;
+	/* use only master core 0 */
+	int num_levels = cpu_clk[0]->vdd_class->num_levels;
+
+	/* sanity checks */
+	if (num_levels < 0)
+		return -EINVAL;
+
+	if (!buf)
+		return -EINVAL;
+
+	/* format UV_mv table */
+	for (i = 0; i < num_levels; i++) {
+		/* show only those used in scaling */
+		if (!is_used_by_scaling(freq = cpu_clk[0]->fmax[i] / 1000))
+			continue;
+
+		len += sprintf(buf + len, "%dmhz: %u mV\n", freq / 1000,
+			       cpu_clk[0]->vdd_class->vdd_uv[i] / 1000);
+	}
+	return len;
+}
+
+ssize_t store_UV_mV_table(struct cpufreq_policy *policy, char *buf,
+				size_t count)
+{
+	int i, j;
+	int ret = 0;
+	unsigned int val;
+	char size_cur[8];
+	/* use only master core 0 */
+	int num_levels = cpu_clk[0]->vdd_class->num_levels;
+
+	if (cnt) {
+		cnt = 0;
+		return -EINVAL;
+	}
+
+	/* sanity checks */
+	if (num_levels < 0)
+		return -1;
+
+	for (i = 0; i < num_levels; i++) {
+		if (!is_used_by_scaling(cpu_clk[0]->fmax[i] / 1000))
+			continue;
+
+		ret = sscanf(buf, "%u", &val);
+		if (!ret)
+			return -EINVAL;
+
+		/* bounds check */
+		val = min( max((unsigned int)val, (unsigned int)CPU_VDD_MIN),
+			(unsigned int)CPU_VDD_MAX);
+
+		/* apply it to all available cores */
+		for (j = 0; j < NR_CPUS; j++)
+			cpu_clk[j]->vdd_class->vdd_uv[i] = val * 1000;
+
+		/* Non-standard sysfs interface: advance buf */
+		ret = sscanf(buf, "%s", size_cur);
+		cnt = strlen(size_cur);
+		buf += cnt + 1;
+	}
+	pr_warn("krait: regulator: user voltage table modified!\n");
+
+	return ret;
+}
+#endif
+
 static int clock_krait_8974_driver_probe(struct platform_device *pdev)
 {
 	struct device *dev = &pdev->dev;
@@ -810,49 +894,6 @@ static struct platform_driver clock_krait_8974_driver = {
 		.owner = THIS_MODULE,
 	},
 };
-
-ssize_t vc_get_vdd(char *buf)
-{
-	struct clk_vdd_class *vdd = krait0_clk.c.vdd_class;
-        int i, len = 0;
-	int levels = vdd->num_levels;
-
-        if (buf) {
-                for(i=1; i < levels; i++) {
-                        len += sprintf(buf + len, "%umhz: %d mV\n",
-				(unsigned int)krait0_clk.c.fmax[i]/1000000,
-                                vdd->vdd_uv[i]/1000 );
-                }
-        }
-        return len;
-}
-void vc_set_vdd(const char *buf)
-{
-	struct clk_vdd_class *vdd0 = krait0_clk.c.vdd_class;
-	struct clk_vdd_class *vdd1 = krait1_clk.c.vdd_class;
-	struct clk_vdd_class *vdd2 = krait2_clk.c.vdd_class;
-	struct clk_vdd_class *vdd3 = krait3_clk.c.vdd_class;
-        int ret, i;
-        char size_cur[16];
-        unsigned int volt;
-	int levels = vdd0->num_levels;
-
-        for(i=1; i < levels; i++) {
-            ret = sscanf(buf, "%d", &volt);
-            pr_info("[imoseyon]: voltage for %lu changed to %d\n",
-		krait0_clk.c.fmax[i]/1000, volt*1000);
-            vdd0->vdd_uv[i] = min(max((unsigned int)volt*1000,
-                (unsigned int)600000), (unsigned int)1350000);
-            vdd1->vdd_uv[i] = min(max((unsigned int)volt*1000,
-                (unsigned int)600000), (unsigned int)1350000);
-            vdd2->vdd_uv[i] = min(max((unsigned int)volt*1000,
-                (unsigned int)600000), (unsigned int)1350000);
-            vdd3->vdd_uv[i] = min(max((unsigned int)volt*1000,
-                (unsigned int)600000), (unsigned int)1350000);
-            ret = sscanf(buf, "%s", size_cur);
-            buf += (strlen(size_cur)+1);
-        }
-}
 
 static int __init clock_krait_8974_init(void)
 {

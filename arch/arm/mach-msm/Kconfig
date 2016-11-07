@@ -4928,3 +4928,7 @@ config KERNEL_TEXT_MPU_PROT
           sections early in boot. Read access is permitted to
           all masters; Write access is only permited to the
           secure world.
+
+config CPU_VOLTAGE_TABLE
+	default y
+	bool "Enable CPU voltage modification"
