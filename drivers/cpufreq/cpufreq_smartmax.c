@@ -252,8 +252,6 @@ static inline unsigned int get_timer_delay(void) {
 	return delay;
 }
 
-<<<<<<< HEAD
-=======
 static inline void dbs_timer_init(struct smartmax_info_s *this_smartmax) {
 	int delay = get_timer_delay();
 
@@ -261,7 +259,6 @@ static inline void dbs_timer_init(struct smartmax_info_s *this_smartmax) {
 	schedule_delayed_work_on(this_smartmax->cpu, &this_smartmax->work, delay);
 }
 
->>>>>>> 110df29... workqueue: make deferrable delayed_work
 static inline void dbs_timer_exit(struct smartmax_info_s *this_smartmax) {
 	cancel_delayed_work_sync(&this_smartmax->work);
 }
@@ -311,13 +308,6 @@ inline static void target_freq(struct cpufreq_policy *policy,
 
 	// remember last time we changed frequency
 	this_smartmax->freq_change_time = ktime_to_us(ktime_get());
-}
-
-static inline void dbs_timer_init(struct smartmax_info_s *this_smartmax) {
-	int delay = get_timer_delay();
-
-	INIT_DELAYED_WORK_DEFERRABLE(&this_smartmax->work, do_dbs_timer);
-	queue_delayed_work_on(this_smartmax->cpu, smartmax_wq, &this_smartmax->work, delay);
 }
 
 /* We use the same work function to sale up and down */

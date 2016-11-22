@@ -201,7 +201,7 @@ static int cpufreq_governor_interactive(struct cpufreq_policy *policy,
 		unsigned int event);
 
 #define DYN_DEFER (1)
-		
+
 #ifndef CONFIG_CPU_FREQ_DEFAULT_GOV_INTERACTIVE
 static
 #endif
@@ -240,14 +240,14 @@ static inline void timer_set_nondeferrable(struct timer_list *timer)
 {
        timer->base =
                ((struct tvec_base *)((unsigned long)timer->base &
-                       ~TBASE_DEFERRABLE_FLAG));
+                       ~TIMER_DEFERRABLE));
 }
 
 static inline void timer_set_deferrable(struct timer_list *timer)
 {
        timer->base =
                ((struct tvec_base *)((unsigned long)timer->base |
-                       TBASE_DEFERRABLE_FLAG));
+                       TIMER_DEFERRABLE));
 }
 #endif
 
@@ -277,7 +277,7 @@ static void cpufreq_interactive_timer_resched(
 	pcpu->cputime_speedadj = 0;
 	pcpu->cputime_speedadj_timestamp = pcpu->time_in_idle_timestamp;
 	expires = jiffies + usecs_to_jiffies(timer_rate);
-	
+
 #ifdef DYN_DEFER
        if (pcpu->target_freq > pcpu->policy->min)
                timer_set_nondeferrable(&pcpu->cpu_timer);

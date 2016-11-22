@@ -373,24 +373,6 @@ static struct kobj_attribute bricked_hotplug_enabled_attr =
 unsigned int get_rq_info(void)
 {
 	unsigned long flags = 0;
-        unsigned int rq = 0;
-
-        spin_lock_irqsave(&rq_lock, flags);
-
-        rq = rq_info.rq_avg;
-        rq_info.rq_avg = 0;
-
-        spin_unlock_irqrestore(&rq_lock, flags);
-
-        return rq;
-}
-EXPORT_SYMBOL(get_rq_info);
-#endif
-
-#ifdef CONFIG_BRICKED_HOTPLUG
-unsigned int get_rq_info(void)
-{
-	unsigned long flags = 0;
 	unsigned int rq = 0;
 
 	spin_lock_irqsave(&rq_lock, flags);
@@ -652,7 +634,7 @@ static int __init msm_rq_stats_init(void)
 		if (cpu_online(i))
 			pcpu->cur_freq = cpu_policy.cur;
 		pcpu->prev_cpu_idle = get_cpu_idle_time(i,
-				&pcpu->prev_cpu_wall, 0);
+				&pcpu->prev_cpu_wall);
 		cpumask_copy(pcpu->related_cpus, cpu_policy.cpus);
 	}
 	freq_transition.notifier_call = cpufreq_transition_handler;
