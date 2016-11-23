@@ -388,40 +388,6 @@ static int menu_select(struct cpuidle_driver *drv, struct cpuidle_device *dev)
 		 * The timer is cancelled on CPU wakeup.
 		 */
 		timer_us = 2 * (data->predicted_us + MAX_DEVIATION);
-		perfect_us = perfect_cstate_ms * 1000;
-
-		if (repeat && (4 * timer_us < data->expected_us)) {
-			hrtimer_start(hrtmr, ns_to_ktime(1000 * timer_us),
-				HRTIMER_MODE_REL_PINNED);
-			/* In repeat case, menu hrtimer is started */
-			per_cpu(hrtimer_status, cpu) = MENU_HRTIMER_REPEAT;
-		} else if (perfect_us < data->expected_us) {
-			/*
-			 * The next timer is long. This could be because
-			 * we did not make a useful prediction.
-			 * In that case, it makes sense to re-enter
-			 * into a deeper C-state after some time.
-			 */
-			hrtimer_start(hrtmr, ns_to_ktime(1000 * timer_us),
-				HRTIMER_MODE_REL_PINNED);
-			/* In general case, menu hrtimer is started */
-			per_cpu(hrtimer_status, cpu) = MENU_HRTIMER_GENERAL;
-		}
-	}
-
-	/* not deepest C-state chosen for low predicted residency */
-	if (low_predicted) {
-		unsigned int timer_us = 0;
-		unsigned int perfect_us = 0;
-
-		/*
-		 * Set a timer to detect whether this sleep is much
-		 * longer than repeat mode predicted.  If the timer
-		 * triggers, the code will evaluate whether to put
-		 * the CPU into a deeper C-state.
-		 * The timer is cancelled on CPU wakeup.
-		 */
-		timer_us = 2 * (data->predicted_us + MAX_DEVIATION);
 
 		perfect_us = perfect_cstate_ms * 1000;
 
