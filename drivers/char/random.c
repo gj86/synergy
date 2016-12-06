@@ -455,7 +455,7 @@ static struct entropy_store input_pool = {
 	.poolinfo = &poolinfo_table[0],
 	.name = "input",
 	.limit = 1,
-	.lock = __SPIN_LOCK_UNLOCKED(input_pool.lock),
+	.lock = __SPIN_LOCK_UNLOCKED(&input_pool.lock),
 	.pool = input_pool_data
 };
 
@@ -464,7 +464,7 @@ static struct entropy_store blocking_pool = {
 	.name = "blocking",
 	.limit = 1,
 	.pull = &input_pool,
-	.lock = __SPIN_LOCK_UNLOCKED(blocking_pool.lock),
+	.lock = __SPIN_LOCK_UNLOCKED(&blocking_pool.lock),
 	.pool = blocking_pool_data
 };
 
@@ -472,7 +472,7 @@ static struct entropy_store nonblocking_pool = {
 	.poolinfo = &poolinfo_table[1],
 	.name = "nonblocking",
 	.pull = &input_pool,
-	.lock = __SPIN_LOCK_UNLOCKED(nonblocking_pool.lock),
+	.lock = __SPIN_LOCK_UNLOCKED(&nonblocking_pool.lock),
 	.pool = nonblocking_pool_data
 };
 
@@ -757,7 +757,7 @@ void add_interrupt_randomness(int irq, int irq_flags)
 	struct fast_pool	*fast_pool = &__get_cpu_var(irq_randomness);
 	struct pt_regs		*regs = get_irq_regs();
 	unsigned long		now = jiffies;
-	__u32			input[4], cycles = get_cycles();
+	__u32			input[4], cycles = random_get_entropy();
 
 	input[0] = cycles ^ jiffies;
 	input[1] = irq;
@@ -1480,28 +1480,6 @@ unsigned int get_random_int(void)
 
 	return ret;
 }
-
-/*
- * Same as get_random_int(), but returns unsigned long.
- */
-unsigned long get_random_long(void)
-{
-	__u32 *hash;
-	unsigned long ret;
-
-	if (arch_get_random_long(&ret))
-		return ret;
-
-	hash = get_cpu_var(get_random_int_hash);
-
-	hash[0] += current->pid + jiffies + get_cycles();
-	md5_transform(hash, random_int_secret);
-	ret = *(unsigned long *)hash;
-	put_cpu_var(get_random_int_hash);
-
-	return ret;
-}
-EXPORT_SYMBOL(get_random_long);
 
 /*
  * randomize_range() returns a start address such that
