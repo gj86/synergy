@@ -55,8 +55,10 @@ static struct delayed_work check_temp_work;
 #ifdef CONFIG_THERMAL_MONITOR_LOG
 static struct delayed_work temp_log_work;
 #endif
-bool core_control;
+bool core_control = true;
 static bool core_control_enabled;
+
+int cpu_temp_for_touch_boost;
 static uint32_t cpus_offlined;
 static DEFINE_MUTEX(core_control_mutex);
 static struct kobject *cc_kobj;
@@ -1361,6 +1363,8 @@ static void __ref check_temp(struct work_struct *work)
 				msm_thermal_info.sensor_id, ret);
 		goto reschedule;
 	}
+
+	cpu_temp_for_touch_boost = temp;
 
 	do_core_control(temp);
 	do_psm();
