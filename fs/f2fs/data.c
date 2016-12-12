@@ -1601,28 +1601,6 @@ static int f2fs_write_end(struct file *file,
 	return copied;
 }
 
-#ifdef CONFIG_AIO_OPTIMIZATION
-static int check_direct_IO_ITER(struct inode *inode, int rw,
-		struct iov_iter *iter, loff_t offset)
-{
-	unsigned blocksize_mask = inode->i_sb->s_blocksize - 1;
-	int i;
-
-	if (rw == READ)
-		return 0;
-
-	if (offset & blocksize_mask)
-		return -EINVAL;
-
-	for (i = 0; i < iter->nr_segs; i++) {
-		const struct iovec *iov = iov_iter_iovec(iter);
-		if (iov[i].iov_len & blocksize_mask)
-			return -EINVAL;
-	}
-
-	return 0;
-}
-#else
 static ssize_t check_direct_IO(struct inode *inode, int rw,
 		const struct iovec *iov, loff_t offset, unsigned long nr_segs)
 {
@@ -1662,7 +1640,6 @@ static ssize_t check_direct_IO(struct inode *inode, int rw,
 out:
 	return retval;
 }
-#endif
 
 static ssize_t f2fs_direct_IO(int rw, struct kiocb *iocb,
 				const struct iovec *iov, loff_t offset,
@@ -1682,9 +1659,6 @@ static ssize_t f2fs_direct_IO(int rw, struct kiocb *iocb,
 	if (f2fs_encrypted_inode(inode) && S_ISREG(inode->i_mode))
 		return 0;
 
-#ifdef CONFIG_AIO_OPTIMIZATION
-	err = check_direct_IO_ITER(inode, rw, iter, offset);
-#else
 	err = check_direct_IO(inode, rw, iov, offset, nr_segs);
 	if (err)
 		return err;
@@ -1697,13 +1671,8 @@ static ssize_t f2fs_direct_IO(int rw, struct kiocb *iocb,
 			goto out;
 	}
 
-#ifdef CONFIG_AIO_OPTIMIZATION
-	err = blockdev_direct_IO(rw, iocb, inode, iter, offset,
-							get_data_block_dio);
-#else
 	err = blockdev_direct_IO(rw, iocb, inode, iov, offset, nr_segs,
 							get_data_block_dio);
-#endif
 out:
 	if (err < 0 && (rw & WRITE))
 		f2fs_write_failed(mapping, offset + count);
