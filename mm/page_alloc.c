@@ -59,8 +59,8 @@
 #include <linux/mm_inline.h>
 #include <linux/migrate.h>
 #include <linux/page-debug-flags.h>
-#include <linux/sched/rt.h>
 #include <linux/hugetlb.h>
+#include <linux/sched/rt.h>
 
 #include <asm/sections.h>
 #include <asm/tlbflush.h>
@@ -1054,69 +1054,20 @@ static void change_pageblock_range(struct page *pageblock_page,
 	}
 }
 
-/*
- * When we are falling back to another migratetype during allocation, try to
- * steal extra free pages from the same pageblocks to satisfy further
- * allocations, instead of polluting multiple pageblocks.
- *
- * If we are stealing a relatively large buddy page, it is likely there will
- * be more free pages in the pageblock, so try to steal them all. For
- * reclaimable and unmovable allocations, we steal regardless of page size,
- * as fragmentation caused by those allocations polluting movable pageblocks
- * is worse than movable allocations stealing from unmovable and reclaimable
- * pageblocks.
- *
- * If we claim more than half of the pageblock, change pageblock's migratetype
- * as well.
- */
-static void try_to_steal_freepages(struct zone *zone, struct page *page,
-				   int start_type, int fallback_type,
-				   int start_order)
-{
-	int current_order = page_order(page);
-
-	/* Take ownership for orders >= pageblock_order */
-	if (current_order >= pageblock_order) {
-		change_pageblock_range(page, current_order, start_type);
-		return;
-	}
-
-	/* don't let unmovable allocations cause migrations simply because of free pages */
-	if ((start_type != MIGRATE_UNMOVABLE && current_order >= pageblock_order / 2) ||
-	    /* only steal reclaimable page blocks for unmovable allocations */
-	    (start_type == MIGRATE_UNMOVABLE && fallback_type != MIGRATE_MOVABLE && current_order >= pageblock_order / 2) ||
-	    /* reclaimable can steal aggressively */
-	    start_type == MIGRATE_RECLAIMABLE ||
-	    // allow unmovable allocs up to 64K without migrating blocks
-	    (start_type == MIGRATE_UNMOVABLE && start_order >= 5) ||
-	    page_group_by_mobility_disabled) {
-		int pages;
-
-		pages = move_freepages_block(zone, page, start_type);
-
-		/* Claim the whole block if over half of it is free */
-		if (pages >= (1 << (pageblock_order-1)) ||
-				page_group_by_mobility_disabled)
-			set_pageblock_migratetype(page, start_type);
-	}
-}
-
 /* Remove an element from the buddy allocator from the fallback list */
 static inline struct page *
 __rmqueue_fallback(struct zone *zone, int order, int start_migratetype)
 {
 	struct free_area * area;
-	unsigned int current_order;
+	int current_order;
 	struct page *page;
+	int migratetype, i;
 
 	/* Find the largest possible block of pages in the other list */
-	for (current_order = MAX_ORDER-1;
-				current_order >= order && current_order <= MAX_ORDER-1;
-				--current_order) {
-		int i;
+	for (current_order = MAX_ORDER-1; current_order >= order;
+						--current_order) {
 		for (i = 0;; i++) {
-			int migratetype = fallbacks[start_migratetype][i];
-			int buddy_type = start_migratetype;
+			migratetype = fallbacks[start_migratetype][i];
 
 			/* MIGRATE_RESERVE handled later if necessary */
 			if (migratetype == MIGRATE_RESERVE)
@@ -1130,36 +1081,48 @@ __rmqueue_fallback(struct zone *zone, int order, int start_migratetype)
 					struct page, lru);
 			area->nr_free--;
 
-			if (!is_migrate_cma(migratetype)) {
-				try_to_steal_freepages(zone, page,
-						       start_migratetype,
-						       migratetype, order);
-			} else {
-				/*
-				 * When borrowing from MIGRATE_CMA, we need to
-				 * release the excess buddy pages to CMA
-				 * itself, and we do not try to steal extra
-				 * free pages.
-				 */
-				buddy_type = migratetype;
+			/*
+			 * If breaking a large block of pages, move all free
+			 * pages to the preferred allocation list. If falling
+			 * back for a reclaimable kernel allocation, be more
+			 * aggressive about taking ownership of free pages
+			 *
+			 * On the other hand, never change migration
+			 * type of MIGRATE_CMA pageblocks nor move CMA
+			 * pages on different free lists. We don't
+			 * want unmovable pages to be allocated from
+			 * MIGRATE_CMA areas.
+			 */
+			if (!is_migrate_cma(migratetype) &&
+			    (unlikely(current_order >= pageblock_order / 2) ||
+			     start_migratetype == MIGRATE_RECLAIMABLE ||
+			     page_group_by_mobility_disabled)) {
+				int pages;
+				pages = move_freepages_block(zone, page,
+								start_migratetype);
+
+				/* Claim the whole block if over half of it is free */
+				if (pages >= (1 << (pageblock_order-1)) ||
+						page_group_by_mobility_disabled)
+					set_pageblock_migratetype(page,
+								start_migratetype);
+
+				migratetype = start_migratetype;
 			}
 
 			/* Remove the page from the freelists */
 			list_del(&page->lru);
 			rmv_page_order(page);
 
-			expand(zone, page, order, current_order, area,
-					buddy_type);
+			/* Take ownership for orders >= pageblock_order */
+			if (current_order >= pageblock_order &&
+			    !is_migrate_cma(migratetype))
+				change_pageblock_range(page, current_order,
+							start_migratetype);
 
-			/*
-			 * The freepage_migratetype may differ from pageblock's
-			 * migratetype depending on the decisions in
-			 * try_to_steal_freepages(). This is OK as long as it
-			 * does not differ for MIGRATE_CMA pageblocks. For CMA
-			 * we need to make sure unallocated pages flushed from
-			 * pcp lists are returned to the correct freelist.
-			 */
-			set_freepage_migratetype(page, buddy_type);
+			expand(zone, page, order, current_order, area,
+			       is_migrate_cma(migratetype)
+			     ? migratetype : start_migratetype);
 
 			trace_mm_page_alloc_extfrag(page, order, current_order,
 				start_migratetype, migratetype);
@@ -1252,7 +1215,7 @@ static int rmqueue_bulk(struct zone *zone, unsigned int order,
 			list_add_tail(&page->lru, list);
 		if (IS_ENABLED(CONFIG_CMA)) {
 			mt = get_pageblock_migratetype(page);
-			if (!is_migrate_cma(mt) && mt != MIGRATE_ISOLATE)
+			if (!is_migrate_cma(mt) && !is_migrate_isolate(mt))
 				mt = migratetype;
 		}
 		set_freepage_migratetype(page, mt);
@@ -1805,7 +1768,7 @@ static bool __zone_watermark_ok(struct zone *z, int order, unsigned long mark,
 	return true;
 }
 
-bool zone_watermark_ok(struct zone *z, unsigned int order, unsigned long mark,
+bool zone_watermark_ok(struct zone *z, int order, unsigned long mark,
 		      int classzone_idx, int alloc_flags)
 {
 	return __zone_watermark_ok(z, order, mark, classzone_idx, alloc_flags,
