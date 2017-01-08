@@ -15,9 +15,15 @@
 #include <linux/math64.h>
 #include "governor.h"
 
+#define DEVFREQ_SIMPLE_ONDEMAND	"simple_ondemand"
+
 /* Default constants for DevFreq-Simple-Ondemand (DFSO) */
-#define DFSO_UPTHRESHOLD	(90)
-#define DFSO_DOWNDIFFERENCTIAL	(5)
+#define DFSO_UPTHRESHOLD	90
+#define DFSO_DOWNDIFFERENCTIAL	5
+
+static unsigned int dfso_upthreshold = DFSO_UPTHRESHOLD;
+static unsigned int dfso_downdifferential = DFSO_DOWNDIFFERENCTIAL;
+
 static int devfreq_simple_ondemand_func(struct devfreq *df,
 					unsigned long *freq,
 					u32 *flag)
@@ -25,8 +31,6 @@ static int devfreq_simple_ondemand_func(struct devfreq *df,
 	struct devfreq_dev_status stat;
 	int err = df->profile->get_dev_status(df->dev.parent, &stat);
 	unsigned long long a, b;
-	static unsigned int dfso_upthreshold = DFSO_UPTHRESHOLD;
-	static unsigned int dfso_downdifferential = DFSO_DOWNDIFFERENCTIAL;
 	struct devfreq_simple_ondemand_data *data = df->data;
 	unsigned long max = (df->max_freq) ? df->max_freq : UINT_MAX;
 	unsigned long min = (df->min_freq) ? df->min_freq : 0;
@@ -105,6 +109,68 @@ static int devfreq_simple_ondemand_func(struct devfreq *df,
 	return 0;
 }
 
+static ssize_t simple_ondemand_upthreshold_show(struct kobject *kobj,
+						struct kobj_attribute *attr,
+						char *buf)
+{
+	return sprintf(buf, "%d\n", dfso_upthreshold);
+}
+
+static ssize_t simple_ondemand_upthreshold_store(struct kobject *kobj,
+						  struct kobj_attribute *attr,
+						  const char *buf, size_t count)
+{
+	unsigned int val;
+
+	sscanf(buf, "%d", &val);
+	if (val > 100 || val < dfso_downdifferential)
+		return -EINVAL;
+
+	dfso_upthreshold = val;
+
+	return count;
+}
+
+static ssize_t simple_ondemand_downdifferential_show(struct kobject *kobj,
+						     struct kobj_attribute *attr,
+						     char *buf)
+{
+	return sprintf(buf, "%d\n", dfso_downdifferential);
+}
+
+static ssize_t simple_ondemand_downdifferential_store(struct kobject *kobj,
+						      struct kobj_attribute *attr,
+						      const char *buf, size_t count)
+{
+	unsigned int val;
+
+	sscanf(buf, "%d", &val);
+	if (val > dfso_upthreshold)
+		return -EINVAL;
+
+	dfso_downdifferential = val;
+
+	return count;
+}
+
+static struct kobj_attribute upthreshold_attribute =
+	__ATTR(upthreshold, 0664, simple_ondemand_upthreshold_show,
+	       simple_ondemand_upthreshold_store);
+static struct kobj_attribute downdifferential_attribute =
+	__ATTR(downdifferential, 0664, simple_ondemand_downdifferential_show,
+	       simple_ondemand_downdifferential_store);
+
+static struct attribute *attrs[] = {
+	&upthreshold_attribute.attr,
+	&downdifferential_attribute.attr,
+	NULL,
+};
+
+static struct attribute_group attr_group = {
+	.attrs = attrs,
+	.name = DEVFREQ_SIMPLE_ONDEMAND,
+};
+
 static int devfreq_simple_ondemand_handler(struct devfreq *devfreq,
 				unsigned int event, void *data)
 {
@@ -137,7 +203,7 @@ static int devfreq_simple_ondemand_handler(struct devfreq *devfreq,
 }
 
 static struct devfreq_governor devfreq_simple_ondemand = {
-	.name = "simple_ondemand",
+	.name = DEVFREQ_SIMPLE_ONDEMAND,
 	.get_target_freq = devfreq_simple_ondemand_func,
 	.event_handler = devfreq_simple_ondemand_handler,
 };
