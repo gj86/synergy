@@ -32,6 +32,15 @@
 #endif
 #include <linux/of_gpio.h>
 
+/*
+ * Disable SAMSUNG DVFS Related Code block.
+ */
+#ifndef CONFIG_SEC_DVFS
+#ifdef WACOM_BOOSTER
+#undef WACOM_BOOSTER
+#endif
+#endif
+
 bool ums_binary;
 unsigned char screen_rotate;
 unsigned char user_hand = 1;

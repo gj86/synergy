@@ -32,6 +32,15 @@
 #include <linux/regulator/consumer.h>
 #include <linux/qpnp/pin.h>
 
+/*
+ * Disable SAMSUNG DVFS Related Code block.
+ */
+#ifndef CONFIG_SEC_DVFS
+#ifdef TSP_BOOSTER
+#undef TSP_BOOSTER
+#endif
+#endif
+
 #define DRIVER_NAME "synaptics_rmi4_i2c"
 
 #define SYNAPTICS_PM_GPIO_STATE_WAKE	0

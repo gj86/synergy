@@ -35,6 +35,15 @@
 #endif
 #include <linux/regulator/consumer.h>
 
+/*
+ * Disable SAMSUNG DVFS Related Code block.
+ */
+#ifndef CONFIG_SEC_DVFS
+#ifdef KEY_BOOSTER
+#undef KEY_BOOSTER
+#endif
+#endif
+
 /* if you want to check gpio status continually use this */
 #if 0
 #define PERIODIC_CHECK_GPIOS

@@ -24,6 +24,15 @@
 #include "wacom_i2c_coord_table.h"
 #endif
 
+/*
+ * Disable SAMSUNG DVFS Related Code block.
+ */
+#ifndef CONFIG_SEC_DVFS
+#ifdef WACOM_BOOSTER
+#undef WACOM_BOOSTER
+#endif
+#endif
+
 #if defined(CONFIG_USE_INPUTLOCATION_FOR_ENG)
 #define CONFIG_SAMSUNG_KERNEL_DEBUG_USER
 #endif
