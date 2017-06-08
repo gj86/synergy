@@ -1,0 +1,49 @@
+config INTELLI_PLUG
+        bool "Enable intelli-plug cpu hotplug driver"
+        default y
+        help
+          Generic Intelli-plug cpu hotplug driver for ARM SOCs
+
+config MSM_HOTPLUG
+	bool "MSM hotplug driver"
+	depends on HOTPLUG_CPU
+	default y
+	help
+	  The MSM hotplug driver controls on-/offlining of additional cores based
+	  on current cpu load.
+	  
+config BRICKED_HOTPLUG
+	bool "Enable kernel based mpdecision"
+	depends on MSM_RUN_QUEUE_STATS
+	default y
+	help
+	 This enables kernel based multi core control.
+	 (up/down hotplug based on load)
+
+config THUNDERPLUG_CONTROL
+	bool "Enable plugging down/up of cores based on load per core"
+	depends on SMP && HOTPLUG_CPU
+	default y
+	help
+	  This driver hotplugs cpu cores based on per-core load
+
+config ZEN_DECISION
+	bool "Zen Decision MPDecision Replacement"
+	depends on SMP && FB
+	default n
+	help
+	  MPDecision is a userspace service that does several functions
+	  related to CPU Frequency and CPU Hotplugging. Some of these are:
+	  - Remove cores when screen goes off
+	  - Enable cores when screen goes on
+	  - Raise CPU_MIN_FREQ to a fixed value for a few seconds on input
+  
+	  Zen Decision allows some of the MPDecison functions to be delegated
+	  to the kernel. Right now these are
+	  - Remove cores when screen goes off (after a configurable amount of time)
+	  - Enable cores when screen comes on (immediately)
+
+	  Zen Decision assumes the input boost function of MPDecision should be
+	  delegated to somewhere else in the kernel (Such as in CPU-BOOST)
+	  
+	  Enable this if you'd like the ability to disable MPDecision.
