@@ -19,6 +19,7 @@ sha1-arm-neon-y	:= sha1-armv7-neon.o sha1_neon_glue.o
 sha512-arm-neon-y := sha512-armv7-neon.o sha512_neon_glue.o
 sha256-arm-neon-$(CONFIG_KERNEL_MODE_NEON) := sha256_neon_glue.o
 sha256-arm-y	:= sha256-core.o sha256_glue.o $(sha256-arm-neon-y)
+sha512-arm-neon-y := sha512-armv7-neon.o sha512_neon_glue.o
 
 quiet_cmd_perl = PERL    $@
       cmd_perl = $(PERL) $(<) > $(@)
