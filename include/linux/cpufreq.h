@@ -31,6 +31,15 @@
 #define CPUFREQ_TRANSITION_NOTIFIER	(0)
 #define CPUFREQ_POLICY_NOTIFIER		(1)
 
+#ifdef CONFIG_MSM_LIMITER
+int cpufreq_set_gov(char *target_gov, unsigned int cpu);
+char *cpufreq_get_gov(unsigned int cpu);
+int cpufreq_set_freq(unsigned int max_freq, unsigned int min_freq,
+			unsigned int cpu);
+int cpufreq_get_max(unsigned int cpu);
+int cpufreq_get_min(unsigned int cpu);
+#endif
+
 #ifdef CONFIG_CPU_FREQ
 int cpufreq_register_notifier(struct notifier_block *nb, unsigned int list);
 int cpufreq_unregister_notifier(struct notifier_block *nb, unsigned int list);
