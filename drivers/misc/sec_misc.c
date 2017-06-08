@@ -225,6 +225,8 @@ static DEVICE_ATTR(debug_level, S_IRUGO | S_IWUSR ,
 		debug_level_show, debug_level_store);
 #endif // CONFIG_SEC_DEBUG
 
+#endif
+
 #if defined(CONFIG_MACH_APEXQ) || defined(CONFIG_MACH_AEGIS2)
 static ssize_t slideCount_show
 	(struct device *dev, struct device_attribute *attr, char *buf)
@@ -365,9 +367,9 @@ static struct device_attribute *sec_misc_attrs[] = {
 	&dev_attr_emmc_checksum_done,
 	&dev_attr_emmc_checksum_pass,
 	&dev_attr_rory_control,
-#ifdef CONFIG_SEC_DEBUG
+#ifdef CONFIG_SEC_DEBUG	
 	&dev_attr_debug_level,
-#endif // CONFIG_SEC_DEBUG
+#endif
 #if defined(CONFIG_MACH_APEXQ) || defined(CONFIG_MACH_AEGIS2)
 	&dev_attr_slideCount,
 #endif
