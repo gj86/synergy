@@ -42,6 +42,16 @@
 #include "issp_extern.h"
 #include "coreriver_extern.h"
 #include <linux/mfd/pm8xxx/pm8921.h>
+
+/*
+ * Disable SAMSUNG DVFS Related Code block.
+ */
+#ifndef CONFIG_SEC_DVFS
+#ifdef TSP_BOOSTER
+#undef TSP_BOOSTER
+#endif
+#endif
+
 /*
 #define CYPRESS_GEN		0X00
 #define CYPRESS_FW_VER		0X01

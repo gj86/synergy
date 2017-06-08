@@ -31,6 +31,15 @@
 
 #include "synaptics_i2c_rmi.h"
 
+/*
+ * Disable SAMSUNG DVFS Related Code block.
+ */
+#ifndef CONFIG_SEC_DVFS
+#ifdef TSP_BOOSTER
+#undef TSP_BOOSTER
+#endif
+#endif
+
 #define FACTORY_MODE
 
 #ifdef TOUCHKEY_ENABLE
