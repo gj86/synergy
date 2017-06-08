@@ -792,7 +792,7 @@ int subsystem_restart_dev(struct subsys_device *dev)
 	name = dev->desc->name;
 
 #ifdef CONFIG_SEC_DEBUG
-#ifdef CONFIG_SEC_SSR_DEBUG_LEVEL_CHK 
+#ifdef CONFIG_SEC_SSR_DEBUG_LEVEL_CHK
 	if (!sec_debug_is_enabled_for_ssr())
 #else
 	if (!sec_debug_is_enabled())
@@ -837,13 +837,16 @@ int subsystem_restart_dev(struct subsys_device *dev)
 				name, restart_levels[dev->restart_level], enable_ramdumps);
 	}
 	if (strncmp(name, _order_8x60_all[1], 5) == 0) {
+#ifdef CONFIG_SEC_DEBUG
 		enable_ramdumps = sec_debug_is_enabled()? 1 : 0;
+#else
+		enable_ramdumps = 0;
+#endif
 		dev->restart_level = RESET_SUBSYS_COUPLED;
 		pr_info("Restart sequence requested for %s, restart_level = %s, enable_ramdumps = %d. \n",
 				name, restart_levels[dev->restart_level], enable_ramdumps);
 	}
 #endif
-	
 	pr_info("Restart sequence requested for %s, restart_level = %s.\n",
 		name, restart_levels[dev->restart_level]);
 
