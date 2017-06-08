@@ -826,7 +826,6 @@ static ssize_t store_target_loads(
 		kfree(target_loads);
 	target_loads = new_target_loads;
 	target_loads = new_target_loads;
-	sm_store_loads = target_loads[0];
 	ntarget_loads = ntokens;
 	spin_unlock_irqrestore(&target_loads_lock, flags);
 	return count;
@@ -871,7 +870,6 @@ static ssize_t store_above_hispeed_delay(
 		kfree(above_hispeed_delay);
 	above_hispeed_delay = new_above_hispeed_delay;
 	above_hispeed_delay = new_above_hispeed_delay;
-	sm_store_delay = above_hispeed_delay[0];
 	nabove_hispeed_delay = ntokens;
 	spin_unlock_irqrestore(&above_hispeed_delay_lock, flags);
 	return count;
@@ -898,7 +896,6 @@ static ssize_t store_hispeed_freq(struct kobject *kobj,
 	if (ret < 0)
 		return ret;
 	hispeed_freq = val;
-	sm_store_hi_freq = val;
 	return count;
 }
 
@@ -947,7 +944,6 @@ static ssize_t store_go_hispeed_load(struct kobject *kobj,
 	if (ret < 0)
 		return ret;
 	go_hispeed_load = val;
-	sm_store_hi_load = val;
 	return count;
 }
 
@@ -970,7 +966,6 @@ static ssize_t store_min_sample_time(struct kobject *kobj,
 	if (ret < 0)
 		return ret;
 	min_sample_time = val;
-	sm_store_sample = val;
 	return count;
 }
 
@@ -993,7 +988,6 @@ static ssize_t store_timer_rate(struct kobject *kobj,
 	if (ret < 0)
 		return ret;
 	timer_rate = val;
-	sm_store_rate = val;	
 	return count;
 }
 
@@ -1018,7 +1012,6 @@ static ssize_t store_timer_slack(
 		return ret;
 
 	timer_slack_val = val;
-	sm_store_slack = val;
 	return count;
 }
 
@@ -1115,7 +1108,6 @@ static ssize_t store_sync_freq(struct kobject *kobj,
 	/*if (val <= 960000)
 		return count;*/
 	sync_freq = val;
-	sm_store_sync_freq = val;
 	return count;
 }
 
@@ -1138,7 +1130,6 @@ static ssize_t store_up_threshold_any_cpu_load(struct kobject *kobj,
 	if (ret < 0)
 		return ret;
 	up_threshold_any_cpu_load = val;
-	sm_store_any_load = val;
 	return count;
 }
 
@@ -1163,7 +1154,6 @@ static ssize_t store_up_threshold_any_cpu_freq(struct kobject *kobj,
 	if (ret < 0)
 		return ret;
 	up_threshold_any_cpu_freq = val;
-	sm_store_any_freq = val;
 	return count;
 }
 
@@ -1467,7 +1457,6 @@ module_init(cpufreq_phantom_init);
 
 static void __exit cpufreq_phantom_exit(void)
 {
-	phantom_on = false;
 	cpufreq_unregister_governor(&cpufreq_gov_phantom);
 	kthread_stop(speedchange_task);
 	put_task_struct(speedchange_task);
