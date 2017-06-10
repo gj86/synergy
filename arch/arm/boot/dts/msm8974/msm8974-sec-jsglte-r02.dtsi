@@ -9,7 +9,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  */
- 
+
 /include/ "dsi_panel_samsung_octa_1080p_video_jsglte.dtsi"
 /include/ "msm8974-leds.dtsi"
 /include/ "msm8974-camera-sensor-hlte-r02.dtsi"
@@ -65,7 +65,7 @@
 		qcom,memblock-reserve = <0x03200000 0x00F00000>;
 			qcom,memory-alt-reservation-size = <0x1F40000>;	 /* Framebuffer reservation only for LPM or recovery boot mode */
 		};
-	};	
+	};
 	qcom,mdss_dsi@fd922800 {
 		qcom,dsi-pref-prim-pan = <&dsi_samsung_fhd_ks01>;
 		qcom,platform-supply-entry1 {
@@ -172,14 +172,14 @@
 		&msmgpio 61 0 /* scl */
 		>;
 	};
-	
+
 		i2c@31 {
 		cell-index = <31>;
 		compatible = "i2c-gpio";
 		gpios = <&msmgpio 29 0 /* sda */
 		&msmgpio 30 0 /* scl */
 		>;
-		
+
 		actuator1: qcom,actuator@36 {
 		compatible = "qcom,actuator";
 		cell-index = <1>;
@@ -326,7 +326,7 @@
 	};
 
 	/* BLSP#2 */
-	
+
 	i2c@f9924000 {
 		qcom,scl-gpio = <&msmgpio 7 0>;
 		qcom,sda-gpio = <&msmgpio 6 0>;
@@ -733,13 +733,13 @@
 			2 &msmgpio 62 0x3>;
 	interrupt-names = "hc_irq", "pwr_irq", "status_irq";
 	cd-gpios = <&msmgpio 62 0x1>;
-	
+
 	qcom,clk-rates = <400000 20000000 25000000 50000000>;
 
 	vdd-supply = <&pm8941_l21>;
 	qcom,vdd-voltage-level = <2950000 2950000>;
 	qcom,vdd-current-level = <9000 800000>;
-	
+
 	vdd-io-supply = <&pm8941_l13>;
 	qcom,vdd-io-voltage-level = <2950000 2950000>;
 	qcom,vdd-io-current-level = <6 22000>;
