@@ -65,7 +65,7 @@
 		qcom,memblock-reserve = <0x03200000 0x00F00000>;
 			qcom,memory-alt-reservation-size = <0x1F40000>;	 /* Framebuffer reservation only for LPM or recovery boot mode */
 		};
-	};	
+	};	
 	qcom,mdss_dsi@fd922800 {
 		qcom,dsi-pref-prim-pan = <&dsi_samsung_fhd_ks01>;
 		qcom,platform-supply-entry1 {
