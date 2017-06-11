@@ -349,14 +349,6 @@ done:
 	return ret;
 }
 
-/**
- * kgsl_mem_entry_untrack_gpuaddr() - Untrack memory that is previously tracked
- * process - Pointer to process private to which memory belongs
- * entry - Memory entry to untrack
- *
- * Function just does the opposite of kgsl_mem_entry_track_gpuaddr. Needs to be
- * called with processes spin lock held
- */
 static void
 kgsl_mem_entry_untrack_gpuaddr(struct kgsl_process_private *process,
 				struct kgsl_mem_entry *entry)
@@ -1048,8 +1040,6 @@ int kgsl_close_device(struct kgsl_device *device)
 		/* Fail if the wait times out */
 		BUG_ON(atomic_read(&device->active_cnt) > 0);
 
-		/* Force power on to do the stop */
-		kgsl_pwrctrl_enable(device);
 		result = device->ftbl->stop(device);
 		kgsl_pwrctrl_set_state(device, KGSL_STATE_INIT);
 	}
@@ -1731,8 +1721,7 @@ static void kgsl_cmdbatch_sync_expire(struct kgsl_device *device,
 	int sched = 0;
 	int removed = 0;
 
-	spin_lock(&event->cmdbatch->lock);
-
+	spin_lock_bh(&event->cmdbatch->lock);
 	/*
 	 * sync events that are contained by a cmdbatch which has been
 	 * destroyed may have already been removed from the synclist
@@ -1747,7 +1736,7 @@ static void kgsl_cmdbatch_sync_expire(struct kgsl_device *device,
 	}
 
 	sched = list_empty(&event->cmdbatch->synclist) ? 1 : 0;
-	spin_unlock(&event->cmdbatch->lock);
+	spin_unlock_bh(&event->cmdbatch->lock);
 
 	/* If the list is empty delete the canary timer */
 	if (sched)
@@ -1910,8 +1899,8 @@ static int kgsl_cmdbatch_add_sync_fence(struct kgsl_device *device,
 	 * removing from the synclist.
 	 */
 
-	spin_lock(&cmdbatch->lock);
 	kref_get(&event->refcount);
+	spin_lock(&cmdbatch->lock);
 	list_add(&event->node, &cmdbatch->synclist);
 	spin_unlock(&cmdbatch->lock);
 
@@ -1936,8 +1925,8 @@ static int kgsl_cmdbatch_add_sync_fence(struct kgsl_device *device,
 		/* Remove event from the synclist */
 		spin_lock(&cmdbatch->lock);
 		list_del(&event->node);
-		kgsl_cmdbatch_sync_event_put(event);
 		spin_unlock(&cmdbatch->lock);
+		kgsl_cmdbatch_sync_event_put(event);
 
 		/* Event no longer needed by this function */
 		kgsl_cmdbatch_sync_event_put(event);
@@ -4407,8 +4396,9 @@ int kgsl_device_platform_probe(struct kgsl_device *device)
 	disable_irq(device->pwrctrl.interrupt_num);
 
 	KGSL_DRV_INFO(device,
-		"dev_id %d regs phys 0x%08lx size 0x%08x\n",
-		device->id, device->reg_phys, device->reg_len);
+		"dev_id %d regs phys 0x%08lx size 0x%08x virt %p\n",
+		device->id, device->reg_phys, device->reg_len,
+		device->reg_virt);
 
 	rwlock_init(&device->context_lock);
 
