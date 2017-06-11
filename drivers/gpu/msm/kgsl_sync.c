@@ -80,15 +80,15 @@ struct kgsl_fence_event_priv {
 /**
  * kgsl_fence_event_cb - Event callback for a fence timestamp event
  * @device - The KGSL device that expired the timestamp
- * @priv - private data for the event
- * @context_id - the context id that goes with the timestamp
- * @timestamp - the timestamp that triggered the event
+ * @context- Pointer to the context that owns the event
+ * @priv: Private data for the callback
+ * @result - Result of the event (retired or canceled)
  *
  * Signal a fence following the expiration of a timestamp
  */
 
-static inline void kgsl_fence_event_cb(struct kgsl_device *device,
-	void *priv, u32 context_id, u32 timestamp, u32 type)
+static void kgsl_fence_event_cb(struct kgsl_device *device,
+		struct kgsl_context *context, void *priv, int result)
 {
 	struct kgsl_fence_event_priv *ev = priv;
 	kgsl_sync_timeline_signal(ev->context->timeline, ev->timestamp);
@@ -117,8 +117,8 @@ static int _add_fence_event(struct kgsl_device *device,
 	event->timestamp = timestamp;
 	event->context = context;
 
-	ret = kgsl_add_event(device, context->id, timestamp,
-		kgsl_fence_event_cb, event, context->dev_priv);
+	ret = kgsl_add_event(device, &context->events, timestamp,
+		kgsl_fence_event_cb, event);
 
 	if (ret) {
 		kgsl_context_put(context);
@@ -194,6 +194,7 @@ int kgsl_add_fence_event(struct kgsl_device *device,
 		ret = priv.fence_fd;
 		goto unlock;
 	}
+	sync_fence_install(fence, priv.fence_fd);
 
 	/*
 	 * If the timestamp hasn't expired yet create an event to trigger it.
@@ -220,7 +221,6 @@ int kgsl_add_fence_event(struct kgsl_device *device,
 		ret = -EFAULT;
 		goto out;
 	}
-	sync_fence_install(fence, priv.fence_fd);
 
 	return 0;
 

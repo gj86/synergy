@@ -219,7 +219,7 @@ static irqreturn_t z180_irq_handler(struct kgsl_device *device)
 			count &= 255;
 			z180_dev->timestamp += count;
 
-			queue_work(device->work_queue, &device->ts_expired_ws);
+			queue_work(device->work_queue, &device->event_work);
 			wake_up_interruptible(&device->wait_queue);
 		}
 	}
@@ -401,8 +401,8 @@ z180_cmdstream_issueibcmds(struct kgsl_device_private *dev_priv,
 	struct kgsl_pagetable *pagetable = dev_priv->process_priv->pagetable;
 	struct z180_device *z180_dev = Z180_DEVICE(device);
 	unsigned int sizedwords;
-	unsigned int numibs;
-	struct kgsl_ibdesc *ibdesc;
+	unsigned int numibs = 0;
+	struct kgsl_memobj_node *ib;
 
 	kgsl_mutex_lock(&device->mutex, &device->mutex_owner);
 
@@ -415,8 +415,9 @@ z180_cmdstream_issueibcmds(struct kgsl_device_private *dev_priv,
 		goto error;
 	}
 
-	ibdesc = cmdbatch->ibdesc;
-	numibs = cmdbatch->ibcount;
+	/* Get the total IBs in the list */
+	list_for_each_entry(ib, &cmdbatch->cmdlist, node)
+		numibs++;
 
 	if (device->state & KGSL_STATE_HUNG) {
 		result = -EINVAL;
@@ -427,8 +428,8 @@ z180_cmdstream_issueibcmds(struct kgsl_device_private *dev_priv,
 		result = -EINVAL;
 		goto error;
 	}
-	cmd = ibdesc[0].gpuaddr;
-	sizedwords = ibdesc[0].sizedwords;
+	cmd = ib->gpuaddr;
+	sizedwords = ib->sizedwords;
 	/*
 	 * Get a kernel mapping to the IB for monkey patching.
 	 * See the end of this function.
@@ -451,7 +452,7 @@ z180_cmdstream_issueibcmds(struct kgsl_device_private *dev_priv,
 			     "Cannot make kernel mapping for gpuaddr 0x%x\n",
 			     cmd);
 		result = -EINVAL;
-		goto error;
+		goto error_put;
 	}
 
 	KGSL_CMD_INFO(device, "ctxt %d ibaddr 0x%08x sizedwords %d\n",
@@ -480,7 +481,7 @@ z180_cmdstream_issueibcmds(struct kgsl_device_private *dev_priv,
 	if (result < 0) {
 		KGSL_CMD_ERR(device, "wait_event_interruptible_timeout "
 			"failed: %ld\n", result);
-		goto error;
+		goto error_put;
 	}
 	result = 0;
 
@@ -512,8 +513,10 @@ z180_cmdstream_issueibcmds(struct kgsl_device_private *dev_priv,
 
 	z180_cmdwindow_write(device, ADDR_VGV3_CONTROL, cmd);
 	z180_cmdwindow_write(device, ADDR_VGV3_CONTROL, 0);
+error_put:
+	kgsl_mem_entry_put(entry);
 error:
-	kgsl_trace_issueibcmds(device, context->id, cmdbatch,
+	kgsl_trace_issueibcmds(device, context->id, cmdbatch, numibs,
 		*timestamp, cmdbatch ? cmdbatch->flags : 0, result, 0);
 
 	kgsl_active_count_put(device);
