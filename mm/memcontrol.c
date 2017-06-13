@@ -5178,6 +5178,26 @@ static struct page *mc_handle_present_pte(struct vm_area_struct *vma,
 	return page;
 }
 
+#ifdef CONFIG_SWAP
+static struct page *mc_handle_swap_pte(struct vm_area_struct *vma,
+			unsigned long addr, pte_t ptent, swp_entry_t *entry)
+{
+	struct page *page = NULL;
+	swp_entry_t ent = pte_to_swp_entry(ptent);
+
+	if (!move_anon() || non_swap_entry(ent))
+		return NULL;
+	/*
+	 * Because lookup_swap_cache() updates some statistics counter,
+	 * we call find_get_page() with swapper_space directly.
+	 */
+	page = find_get_page(swap_address_space(ent), ent.val);
+	if (do_swap_account)
+		entry->val = ent.val;
+
+	return page;
+}
+#else
 static struct page *mc_handle_swap_pte(struct vm_area_struct *vma,
 			unsigned long addr, pte_t ptent, swp_entry_t *entry)
 {
@@ -5198,6 +5218,7 @@ static struct page *mc_handle_swap_pte(struct vm_area_struct *vma,
 
 	return page;
 }
+#endif
 
 static struct page *mc_handle_file_pte(struct vm_area_struct *vma,
 			unsigned long addr, pte_t ptent, swp_entry_t *entry)
@@ -5227,8 +5248,8 @@ static struct page *mc_handle_file_pte(struct vm_area_struct *vma,
 	if (radix_tree_exceptional_entry(page)) {
 		swp_entry_t swap = radix_to_swp_entry(page);
 		if (do_swap_account)
-			*entry = swap;
-		page = find_get_page(&swapper_space, swap.val);
+			*entry = swap;		
+		page = find_get_page(swap_address_space(swap), swap.val);
 	}
 #endif
 	return page;
