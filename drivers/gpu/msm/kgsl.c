@@ -1719,7 +1719,8 @@ static void kgsl_cmdbatch_sync_expire(struct kgsl_device *device,
 	int sched = 0;
 	int removed = 0;
 
-	spin_lock_bh(&event->cmdbatch->lock);
+	spin_lock(&event->cmdbatch->lock);
+
 	/*
 	 * sync events that are contained by a cmdbatch which has been
 	 * destroyed may have already been removed from the synclist
@@ -1734,7 +1735,7 @@ static void kgsl_cmdbatch_sync_expire(struct kgsl_device *device,
 	}
 
 	sched = list_empty(&event->cmdbatch->synclist) ? 1 : 0;
-	spin_unlock_bh(&event->cmdbatch->lock);
+	spin_unlock(&event->cmdbatch->lock);
 
 	/* If the list is empty delete the canary timer */
 	if (sched)
@@ -1897,8 +1898,8 @@ static int kgsl_cmdbatch_add_sync_fence(struct kgsl_device *device,
 	 * removing from the synclist.
 	 */
 
-	kref_get(&event->refcount);
 	spin_lock(&cmdbatch->lock);
+	kref_get(&event->refcount);
 	list_add(&event->node, &cmdbatch->synclist);
 	spin_unlock(&cmdbatch->lock);
 
@@ -1923,8 +1924,8 @@ static int kgsl_cmdbatch_add_sync_fence(struct kgsl_device *device,
 		/* Remove event from the synclist */
 		spin_lock(&cmdbatch->lock);
 		list_del(&event->node);
-		spin_unlock(&cmdbatch->lock);
 		kgsl_cmdbatch_sync_event_put(event);
+		spin_unlock(&cmdbatch->lock);
 
 		/* Event no longer needed by this function */
 		kgsl_cmdbatch_sync_event_put(event);
@@ -2299,7 +2300,7 @@ static struct kgsl_cmdbatch *_kgsl_cmdbatch_create(struct kgsl_device *device,
 
 	if (synclist && numsyncs) {
 		struct kgsl_cmd_syncpoint sync;
-		void  __user *uptr = (void __user *) synclist;
+		void  __user *uptr = (void  __user *)synclist;
 		int i;
 
 		for (i = 0; i < numsyncs; i++) {
