@@ -477,14 +477,12 @@ static void __ref intelli_plug_resume(struct power_suspend *handler)
 static void __ref intelli_plug_resume(struct early_suspend *handler)
 #endif
 {
-
 	if (intelli_plug_active) {
 		mutex_lock(&intelli_plug_mutex);
 		/* keep cores awake long enough for faster wake up */
 		persist_count = BUSY_PERSISTENCE;
 		suspended = false;
 		mutex_unlock(&intelli_plug_mutex);
-		}
 
 		wakeup_boost();
 		screen_off_limit(false);
