@@ -585,14 +585,6 @@ config TOUCHSCREEN_ATMEL_MXT1188S
 	  To compile this driver as a module, choose M here: the
 	  module will be called mxt1188s
 
-config TOUCHSCREEN_CYPRESS_CYTTSP4
-	tristate "CYPRESS TMA445 Touchscreen Interface"
-	depends on I2C
-	default n
-	help
-	  Say Y here if you want support for cypress TMA445 touchscreen controllers.
-	  To compile this driver as a module, choose M here: the
-	  module will be called mxt1188s
 config TOUCHSCREEN_TOUCHRIGHT
 	tristate "Touchright serial touchscreen"
 	select SERIO
@@ -1152,7 +1144,6 @@ source "drivers/input/touchscreen/imagis/Kconfig"
 source "drivers/input/touchscreen/synaptics_s5000/Kconfig"
 source "drivers/input/touchscreen/synaptics_patek/Kconfig"
 source "drivers/input/touchscreen/cyttsp5/Kconfig"
-source "drivers/input/touchscreen/cyttsp4/Kconfig"
 source "drivers/input/touchscreen/wacom_hl/Kconfig"
 source "drivers/input/touchscreen/melfas_mms136/Kconfig"
 source "drivers/input/touchscreen/stm_fts/Kconfig"
