@@ -21,6 +21,7 @@
 #include <linux/slab.h>
 #include <linux/input.h>
 #include <linux/cpufreq.h>
+#include <linux/suspend.h>
 
 #ifdef CONFIG_POWERSUSPEND
 #include <linux/powersuspend.h>
@@ -478,18 +479,11 @@ static void __ref intelli_plug_resume(struct early_suspend *handler)
 {
 
 	if (intelli_plug_active) {
-		int cpu;
-
 		mutex_lock(&intelli_plug_mutex);
 		/* keep cores awake long enough for faster wake up */
 		persist_count = BUSY_PERSISTENCE;
 		suspended = false;
 		mutex_unlock(&intelli_plug_mutex);
-
-		for_each_possible_cpu(cpu) {
-			if (cpu == 0)
-				continue;
-			cpu_up(cpu);
 		}
 
 		wakeup_boost();
@@ -514,6 +508,28 @@ static struct early_suspend intelli_plug_early_suspend_driver = {
         .resume = intelli_plug_resume,
 };
 #endif	/* CONFIG_HAS_EARLYSUSPEND */
+
+static int __ref intelli_plug_pm_notifier(struct notifier_block *notifier,
+					unsigned long pm_event, void *v) {
+	int cpu;
+
+	switch (pm_event) {
+	case PM_SUSPEND_PREPARE:
+		for_each_possible_cpu(cpu) {
+			cpu_up(cpu);
+		}
+		break;
+	case PM_POST_SUSPEND:
+		/* nothing to do */
+		break;
+	}
+	return NOTIFY_OK;
+}
+
+static struct notifier_block intelli_plug_pm_nb = {
+	.notifier_call = intelli_plug_pm_notifier,
+	.priority = 1,
+};
 
 static void intelli_plug_input_event(struct input_handle *handle,
 		unsigned int type, unsigned int code, int value)
@@ -625,6 +641,7 @@ int __init intelli_plug_init(void)
 #ifdef CONFIG_HAS_EARLYSUSPEND
 	register_early_suspend(&intelli_plug_early_suspend_driver);
 #endif
+	register_pm_notifier(&intelli_plug_pm_nb);
 	intelliplug_wq = alloc_workqueue("intelliplug",
 				WQ_HIGHPRI | WQ_UNBOUND, 1);
 	intelliplug_boost_wq = alloc_workqueue("iplug_boost",
