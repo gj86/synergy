@@ -2634,7 +2634,7 @@ int mdss_mdp_display_wait4pingpong(struct mdss_mdp_ctl *ctl)
 	}
 
 	if (ctl->wait_pingpong)
-		ret = ctl->wait_pingpong(ctl, NULL);
+		ret = ctl->wait_pingpong(ctl, (void*) 1);
 
 	mutex_unlock(&ctl->lock);
 
@@ -2722,7 +2722,7 @@ int mdss_mdp_display_commit(struct mdss_mdp_ctl *ctl, void *arg)
 
 	ATRACE_BEGIN("wait_pingpong");
 	if (ctl->wait_pingpong)
-		ctl->wait_pingpong(ctl, NULL);
+		ctl->wait_pingpong(ctl, (void*) 0);
 	ATRACE_END("wait_pingpong");
 
 	ctl->roi_bkup.w = ctl->roi.w;
