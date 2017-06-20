@@ -46,7 +46,6 @@
 #define MOVE_NEAR 0
 #define MOVE_FAR  1
 
-#define MAX_EEPROM_NAME 32
 
 #define MAX_EEPROM_NAME 32
 
