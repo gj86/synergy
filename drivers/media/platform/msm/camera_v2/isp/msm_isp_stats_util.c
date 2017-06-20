@@ -206,7 +206,7 @@ int msm_isp_stats_create_stream(struct vfe_device *vfe_dev,
 
 int msm_isp_request_stats_stream(struct vfe_device *vfe_dev, void *arg)
 {
-	int rc = -1;
+	int rc = 0;
 	struct msm_vfe_stats_stream_request_cmd *stream_req_cmd = arg;
 	struct msm_vfe_stats_stream *stream_info = NULL;
 	struct msm_vfe_stats_shared_data *stats_data = &vfe_dev->stats_data;
