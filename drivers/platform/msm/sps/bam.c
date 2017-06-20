@@ -968,6 +968,20 @@ u32 bam_check_irq_source(void *base, u32 ee, u32 mask,
 }
 
 /**
+ * Reset a BAM pipe
+ */
+void bam_pipe_reset(void *base, u32 pipe)
+{
+	SPS_DBG2("sps:%s:bam=0x%x(va).pipe=%d.", __func__, (u32) base, pipe);
+
+	bam_write_reg(base, P_RST(pipe), 1);
+	wmb(); /* ensure pipe is reset */
+	bam_write_reg(base, P_RST(pipe), 0);
+	wmb(); /* ensure pipe reset is de-asserted*/
+}
+
+
+/**
  * Initialize a BAM pipe
  */
 int bam_pipe_init(void *base, u32 pipe,	struct bam_pipe_parameters *param,
