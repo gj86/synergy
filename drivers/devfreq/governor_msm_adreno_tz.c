@@ -98,6 +98,11 @@ static void _update_cutoff(struct devfreq_msm_adreno_tz_data *priv,
 	}
 }
 
+#ifdef CONFIG_ADRENO_IDLER
+extern int adreno_idler(struct devfreq_dev_status stats, struct devfreq *devfreq,
+		 unsigned long *freq);
+#endif
+
 static int tz_get_target_freq(struct devfreq *devfreq, unsigned long *freq,
 				u32 *flag)
 {
@@ -138,6 +143,13 @@ static int tz_get_target_freq(struct devfreq *devfreq, unsigned long *freq,
 		*freq = devfreq->min_freq;
 		return 0;
 	}
+
+#ifdef CONFIG_ADRENO_IDLER
+	if (adreno_idler(stats, devfreq, freq)) {
+		/* adreno_idler has asked to bail out now */
+		return 0;
+	}
+#endif
 
 	priv->bin.total_time += stats.total_time;
 	priv->bin.busy_time += stats.busy_time;
@@ -344,15 +356,28 @@ static int tz_resume(struct devfreq *devfreq)
 static int tz_suspend(struct devfreq *devfreq)
 {
 	struct devfreq_msm_adreno_tz_data *priv = devfreq->data;
-	suspended = true;
-	__secure_tz_entry2(TZ_RESET_ID, 0, 0);
 
+	suspended = true;
+
+#ifdef CONFIG_ADRENO_IDLER
+	__secure_tz_entry2(TZ_RESET_ID, 0, 0);
+#else
+	struct devfreq_dev_profile *profile = devfreq->profile;
+	unsigned long freq;
+
+#endif
 	priv->bin.total_time = 0;
 	priv->bin.busy_time = 0;
 	priv->bus.total_time = 0;
 	priv->bus.gpu_time = 0;
 	priv->bus.ram_time = 0;
+#ifdef CONFIG_ADRENO_IDLER
 	return 0;
+#else
+	freq = profile->freq_table[profile->max_state - 1];
+
+	return profile->target(devfreq->dev.parent, &freq, 0);
+#endif
 }
 
 static int tz_handler(struct devfreq *devfreq, unsigned int event, void *data)
