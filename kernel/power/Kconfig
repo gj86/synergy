@@ -28,6 +28,13 @@ config CPU_FREQ_LIMIT_USERSPACE
 	  /sys/power/cpufreq_max_limit
 	  /sys/power/cpufreq_table
 
+config SUSPEND_TIME_TIMEKEEPING
+	bool "get suspend time from timekeeping"
+	default y
+	---help---
+	  Get the suspend time in suspend from timekeeping for the archs
+	  that don't support persistent clock.
+
 config POWERSUSPEND
 	bool "Power suspend"
 	default y
