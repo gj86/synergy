@@ -101,6 +101,12 @@ config DEVFREQ_GOV_MSM_CPUBW_HWMON
 
 comment "DEVFREQ Drivers"
 
+config SIMPLE_GPU_ALGORITHM
+	bool "Simple GPU algorithm"
+	depends on DEVFREQ_GOV_MSM_ADRENO_TZ
+	help
+	  Simple user configurable GPU controlling algorithm
+
 config ARM_EXYNOS4_BUS_DEVFREQ
 	bool "ARM Exynos4210/4212/4412 Memory Bus DEVFREQ Driver"
 	depends on CPU_EXYNOS4210 || CPU_EXYNOS4212 || CPU_EXYNOS4412
