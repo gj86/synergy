@@ -867,6 +867,12 @@ int msm_vidc_qbuf(void *instance, struct v4l2_buffer *b)
 	if (!inst || !b || !valid_v4l2_buffer(b, inst))
 		return -EINVAL;
 
+	if (b->length > VIDEO_MAX_PLANES) {
+		dprintk(VIDC_ERR, "num planes exceeds max: %d\n",
+			b->length);
+		return -EINVAL;
+	}
+
 	if (is_dynamic_output_buffer_mode(b, inst)) {
 		if (b->m.planes[0].reserved[0])
 			inst->map_output_buffer = true;
@@ -942,6 +948,12 @@ int msm_vidc_dqbuf(void *instance, struct v4l2_buffer *b)
 
 	if (!inst || !b || !valid_v4l2_buffer(b, inst))
 		return -EINVAL;
+
+	if (b->length > VIDEO_MAX_PLANES) {
+		dprintk(VIDC_ERR, "num planes exceed maximum: %d\n",
+			b->length);
+		return -EINVAL;
+	}
 
 	if (inst->session_type == MSM_VIDC_DECODER)
 		rc = msm_vdec_dqbuf(instance, b);
@@ -1223,7 +1235,7 @@ void *msm_vidc_open(int core_id, int session_type)
 	mutex_init(&inst->bufq[OUTPUT_PORT].lock);
 	mutex_init(&inst->lock);
 	inst->session_type = session_type;
-	INIT_LIST_HEAD(&inst->pendingq);
+	INIT_MSM_VIDC_LIST(&inst->pendingq);
 	INIT_LIST_HEAD(&inst->internalbufs);
 	INIT_LIST_HEAD(&inst->persistbufs);
 	INIT_LIST_HEAD(&inst->registered_bufs);
@@ -1310,8 +1322,8 @@ static void cleanup_instance(struct msm_vidc_inst *inst)
 	struct vb2_buf_entry *entry;
 	if (inst) {
 		mutex_lock(&inst->lock);
-		if (!list_empty(&inst->pendingq)) {
-			list_for_each_safe(ptr, next, &inst->pendingq) {
+		if (!list_empty(&inst->pendingq.list)) {
+			list_for_each_safe(ptr, next, &inst->pendingq.list) {
 				entry = list_entry(ptr, struct vb2_buf_entry,
 						list);
 				list_del(&entry->list);
