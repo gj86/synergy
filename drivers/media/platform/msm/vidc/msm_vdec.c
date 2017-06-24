@@ -1313,16 +1313,18 @@ static inline int start_streaming(struct msm_vidc_inst *inst)
 	}
 
 	mutex_lock(&inst->pendingq.lock);
-	list_for_each_safe(ptr, next, &inst->pendingq.list) {
-		temp = list_entry(ptr, struct vb2_buf_entry, list);
-		rc = msm_comm_qbuf(temp->vb);
-		if (rc) {
-			dprintk(VIDC_ERR,
-				"Failed to qbuf to hardware\n");
-			break;
+	if (!list_empty(&inst->pendingq.list)) {
+		list_for_each_safe(ptr, next, &inst->pendingq.list) {
+			temp = list_entry(ptr, struct vb2_buf_entry, list);
+			rc = msm_comm_qbuf(temp->vb);
+			if (rc) {
+				dprintk(VIDC_ERR,
+					"Failed to qbuf to hardware\n");
+				break;
+			}
+			list_del(&temp->list);
+			kfree(temp);
 		}
-		list_del(&temp->list);
-		kfree(temp);
 	}
 	mutex_unlock(&inst->pendingq.lock);
 	return rc;
@@ -1863,7 +1865,7 @@ static struct v4l2_ctrl **get_super_cluster(struct msm_vidc_inst *inst,
 
 	if (!size || !cluster || !inst)
 	{
-		if(cluster) 
+		if(cluster)
 			kfree(cluster); // PREVENT Resouce leak fix
 		return NULL;
 	}
