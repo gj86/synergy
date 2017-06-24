@@ -1321,7 +1321,7 @@ static void cleanup_instance(struct msm_vidc_inst *inst)
 	struct list_head *ptr, *next;
 	struct vb2_buf_entry *entry;
 	if (inst) {
-		mutex_lock(&inst->lock);
+		mutex_lock(&inst->pendingq.lock);
 		if (!list_empty(&inst->pendingq.list)) {
 			list_for_each_safe(ptr, next, &inst->pendingq.list) {
 				entry = list_entry(ptr, struct vb2_buf_entry,
@@ -1330,6 +1330,8 @@ static void cleanup_instance(struct msm_vidc_inst *inst)
 				kfree(entry);
 			}
 		}
+		mutex_unlock(&inst->pendingq.lock);
+		mutex_lock(&inst->lock);
 		if (!list_empty(&inst->internalbufs)) {
 			mutex_unlock(&inst->lock);
 			if (msm_comm_release_scratch_buffers(inst))

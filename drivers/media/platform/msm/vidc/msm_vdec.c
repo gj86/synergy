@@ -1311,7 +1311,8 @@ static inline int start_streaming(struct msm_vidc_inst *inst)
 			goto fail_start;
 		}
 	}
-	mutex_lock(&inst->sync_lock);
+
+	mutex_lock(&inst->pendingq.lock);
 	if (!list_empty(&inst->pendingq.list)) {
 		list_for_each_safe(ptr, next, &inst->pendingq.list) {
 			temp = list_entry(ptr, struct vb2_buf_entry, list);
@@ -1325,7 +1326,7 @@ static inline int start_streaming(struct msm_vidc_inst *inst)
 			kfree(temp);
 		}
 	}
-	mutex_unlock(&inst->sync_lock);
+	mutex_unlock(&inst->pendingq.lock);
 	return rc;
 fail_start:
 	return rc;
