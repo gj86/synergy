@@ -78,6 +78,36 @@ static void msm_cci_set_clk_param(struct cci_device *cci_dev)
 	return;
 }
 
+static int32_t msm_cci_i2c_config_sync_timer(struct v4l2_subdev *sd,
+	struct msm_camera_cci_ctrl *c_ctrl)
+{
+	struct cci_device *cci_dev;
+	cci_dev = v4l2_get_subdevdata(sd);
+	msm_camera_io_w(c_ctrl->cci_info->cid, cci_dev->base +
+		CCI_SET_CID_SYNC_TIMER_0_ADDR + (c_ctrl->cci_info->cid * 0x4));
+	return 0;
+}
+
+static int32_t msm_cci_i2c_set_freq(struct v4l2_subdev *sd,
+	struct msm_camera_cci_ctrl *c_ctrl)
+{
+	struct cci_device *cci_dev;
+	uint32_t val;
+	cci_dev = v4l2_get_subdevdata(sd);
+	val = c_ctrl->cci_info->freq;
+	msm_camera_io_w(val, cci_dev->base + CCI_I2C_M0_SCL_CTL_ADDR +
+		c_ctrl->cci_info->cci_i2c_master*0x100);
+	msm_camera_io_w(val, cci_dev->base + CCI_I2C_M0_SDA_CTL_0_ADDR +
+		c_ctrl->cci_info->cci_i2c_master*0x100);
+	msm_camera_io_w(val, cci_dev->base + CCI_I2C_M0_SDA_CTL_1_ADDR +
+		c_ctrl->cci_info->cci_i2c_master*0x100);
+	msm_camera_io_w(val, cci_dev->base + CCI_I2C_M0_SDA_CTL_2_ADDR +
+		c_ctrl->cci_info->cci_i2c_master*0x100);
+	msm_camera_io_w(val, cci_dev->base + CCI_I2C_M0_MISC_CTL_ADDR +
+		c_ctrl->cci_info->cci_i2c_master*0x100);
+	return 0;
+}
+
 static void msm_cci_flush_queue(struct cci_device *cci_dev,
 				enum cci_i2c_master_t master)
 {
@@ -306,11 +336,11 @@ static int32_t msm_cci_i2c_read(struct v4l2_subdev *sd,
 	cci_dev = v4l2_get_subdevdata(sd);
 	master = c_ctrl->cci_info->cci_i2c_master;
 	read_cfg = &c_ctrl->cfg.cci_i2c_read_cfg;
-	if (master >= MASTER_MAX || master < 0) {	
-		pr_err("%s:%d Invalid I2C master %d\n",	
-			__func__, __LINE__, master);	
-		return -EINVAL;	
-	}	
+	if (master >= MASTER_MAX || master < 0) {
+		pr_err("%s:%d Invalid I2C master %d\n",
+			__func__, __LINE__, master);
+		return -EINVAL;
+	}
 	mutex_lock(&cci_dev->mutex);
 
 	/*
@@ -790,6 +820,14 @@ static int32_t msm_cci_config(struct v4l2_subdev *sd,
 		break;
 	case MSM_CCI_RELEASE:
 		rc = msm_cci_release(sd);
+		break;
+	case MSM_CCI_SET_SID:
+		break;
+	case MSM_CCI_SET_FREQ:
+		rc = msm_cci_i2c_set_freq(sd, cci_ctrl);
+		break;
+	case MSM_CCI_SET_SYNC_CID:
+		rc = msm_cci_i2c_config_sync_timer(sd, cci_ctrl);
 		break;
 	case MSM_CCI_I2C_READ:
 		rc = msm_cci_i2c_read_bytes(sd, cci_ctrl);
