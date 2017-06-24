@@ -1901,11 +1901,11 @@ static int msm_vidc_load_resources(int flipped_state,
 		dprintk(VIDC_ERR, "HW is overloaded, needed: %d max: %d\n",
 			num_mbs_per_sec, inst->core->resources.max_load);
 		msm_vidc_print_running_insts(inst->core);
-#if 0 /* Samsung skips the overloaded error return  */		
+#if 0 /* Samsung skips the overloaded error return  */
 		inst->state = MSM_VIDC_CORE_INVALID;
 		msm_comm_kill_session(inst);
 		return -EBUSY;
-#endif		
+#endif
 	}
 
 	hdev = inst->core->device;
@@ -2584,6 +2584,7 @@ int msm_comm_qbuf(struct vb2_buffer *vb)
 				dprintk(VIDC_DBG,
 					"Received EOS on output capability\n");
 			}
+
 #ifndef CONFIG_MSM_VIDC_IGNORE_YUV
 			/*Start : Qualcomm Local Patch - 20131226 */
 			if (vb->v4l2_buf.flags &
@@ -2595,6 +2596,7 @@ int msm_comm_qbuf(struct vb2_buffer *vb)
 			}
 			/*End : Qualcomm Local Patch - 20131226 */
 #endif
+
 			if (vb->v4l2_buf.flags &
 					V4L2_QCOM_BUF_FLAG_CODECCONFIG) {
 				frame_data.flags |= HAL_BUFFERFLAG_CODECCONFIG;
@@ -3168,6 +3170,7 @@ int msm_comm_flush(struct msm_vidc_inst *inst, u32 flags)
 	struct mutex *lock;
 	struct msm_vidc_core *core;
 	struct hfi_device *hdev;
+
 	if (!inst) {
 		dprintk(VIDC_ERR,
 				"Invalid instance pointer = %pK\n", inst);
@@ -3224,7 +3227,8 @@ int msm_comm_flush(struct msm_vidc_inst *inst, u32 flags)
 				HAL_FLUSH_OUTPUT2);
 
 	} else {
-		msm_comm_flush_pending_dynamic_buffers(inst);
+		if (!list_empty(&inst->pendingq.list))
+			msm_comm_flush_pending_dynamic_buffers(inst);
 
 		/*If flush is called after queueing buffers but before
 		 * streamon driver should flush the pending queue*/
