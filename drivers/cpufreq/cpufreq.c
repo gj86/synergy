@@ -161,7 +161,7 @@ EXPORT_SYMBOL_GPL(have_governor_per_policy);
 struct kobject *get_governor_parent_kobj(struct cpufreq_policy *policy)
 {
 	if (have_governor_per_policy())
-		return &policy->kobj;
+		return policy->kobj;
 	else
 		return cpufreq_global_kobject;
 }
