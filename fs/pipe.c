@@ -978,6 +978,7 @@ struct pipe_inode_info * alloc_pipe_info(struct inode *inode)
 			pipe->inode = inode;
 			pipe->buffers = pipe_bufs;
 			pipe->user = user;
+			account_pipe_buffers(pipe, 0, pipe_bufs);
 			return pipe;
 		}
 		free_uid(user);
