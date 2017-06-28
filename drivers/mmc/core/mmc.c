@@ -84,6 +84,14 @@ static const struct mmc_fixup mmc_fixups[] = {
 	END_FIXUP
 };
 
+#ifdef CONFIG_ASYNC_FSYNC
+static unsigned int perf_degr;
+int emmc_perf_degr(void)
+{
+	return perf_degr;
+}
+#endif
+
 /*
  * Given the decoded CSD structure, decode the raw CID to our CID structure.
  */
@@ -538,8 +546,8 @@ static int mmc_read_ext_csd(struct mmc_card *card, u8 *ext_csd)
 			card->host->caps2 |= MMC_CAP2_PACKED_WR;
 			card->host->caps2 |= MMC_CAP2_PACKED_WR_CONTROL;
 		}
-			
-#if 0	/* disable HPI mode */ 
+
+#if 0	/* disable HPI mode */
 		if ((ext_csd[EXT_CSD_HPI_FEATURES] & 0x1) &&
 				!(card->quirks & MMC_QUIRK_BROKEN_HPI)) {
 			card->ext_csd.hpi = 1;
@@ -646,7 +654,7 @@ else{
 		/* enable discard feature if emmc is 4.41+ moviNand (EXT_CSD_VENDOR_SPECIFIC_FIELD:64)*/
 		if ((ext_csd[64] & 0x1) && (card->cid.manfid == 0x15))
 			card->ext_csd.feature_support |= MMC_DISCARD_FEATURE;
-	}	
+	}
 
 	/* eMMC v5.0 or later */
 	if (card->ext_csd.rev >= 7) {
