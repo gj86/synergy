@@ -1758,8 +1758,9 @@ int regulator_disable_deferred(struct regulator *regulator, int ms)
 	rdev->deferred_disables++;
 	mutex_unlock(&rdev->mutex);
 
-	ret = schedule_delayed_work(&rdev->disable_work,
-				    msecs_to_jiffies(ms));
+	ret = queue_delayed_work(system_power_efficient_wq,
+				 &rdev->disable_work,
+				 msecs_to_jiffies(ms));
 	if (ret < 0)
 		return ret;
 	else
@@ -3788,7 +3789,7 @@ static int __init regulator_init_complete(void)
 			goto unlock;
 
 #if defined(CONFIG_MACH_CHAGALL_KDI)	// LCD power(ldo4)
-		if (rdev_get_id(rdev) == 3) 
+		if (rdev_get_id(rdev) == 3)
 			goto unlock;
 #endif
 
