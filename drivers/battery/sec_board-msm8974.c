@@ -668,7 +668,7 @@ static sec_bat_adc_table_data_t temp_table[] = {
 	{41772,	-200},
 };
 #elif defined(CONFIG_MACH_KS01SKT) || defined(CONFIG_MACH_KS01KTT) || \
-		defined(CONFIG_MACH_KS01LGT) || defined(CONFIG_MACH_JACTIVESKT) 
+		defined(CONFIG_MACH_KS01LGT) || defined(CONFIG_MACH_JACTIVESKT)
 static sec_bat_adc_table_data_t temp_table[] = {
 	{25844,	900},
 	{26113,	850},
