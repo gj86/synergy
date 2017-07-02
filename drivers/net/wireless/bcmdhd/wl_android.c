@@ -1080,12 +1080,6 @@ int wl_android_send_action_frame(struct net_device *dev, char *command, int tota
 		goto send_action_frame_out;
 	}
 
-	if (params->len > ANDROID_WIFI_ACTION_FRAME_SIZE) {
-		DHD_ERROR(("%s: Requested action frame len was out of range(%d)\n",
-			__FUNCTION__, params->len));
-		goto send_action_frame_out;
-	}
-
 	smbuf = kmalloc(WLC_IOCTL_MAXLEN, GFP_KERNEL);
 	if (smbuf == NULL) {
 		DHD_ERROR(("%s: failed to allocated memory %d bytes\n",
@@ -3183,13 +3177,7 @@ int wl_android_set_ibss_routetable(struct net_device *dev, char *command, int to
 		err = -EINVAL;
 		goto exit;
 	}
-        if (entries > MAX_IBSS_ROUTE_TBL_ENTRY) {
-                WL_ERR(("Invalid entries number %u\n", entries));
-                err = -EINVAL;
-                goto exit;
-        }
-
-        WL_INFO(("Routing table count:%u\n", entries));
+	WL_INFO(("Routing table count:%d\n", entries));
 	route_tbl->num_entry = entries;
 
 	for (i = 0; i < entries; i++) {
@@ -3382,10 +3370,7 @@ int wl_android_priv_cmd(struct net_device *net, struct ifreq *ifr, int cmd)
 		ret = -EINVAL;
 		goto exit;
 	}
-	if (!capable(CAP_NET_ADMIN)) {
-		ret = -EPERM;
-		goto exit;
-	}
+
 #ifdef CONFIG_COMPAT
 	if (is_compat_task()) {
 		compat_android_wifi_priv_cmd compat_priv_cmd;

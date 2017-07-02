@@ -50,9 +50,9 @@
 #include "ssp_sensorhub.h"
 #endif
 
-#define SSP_DBG		1
+#define SSP_DBG		0
 #ifdef CONFIG_SEC_DEBUG
-#define SSP_SEC_DEBUG	1
+#define SSP_SEC_DEBUG	0
 #else
 #define SSP_SEC_DEBUG	0
 #endif
@@ -69,13 +69,12 @@
 #define MAG_LOG_MODE 0
 #endif
 
-#if SSP_DBG
-#define SSP_FUNC_DBG 1
-#define SSP_DATA_DBG 0
-
 /* ssp mcu device ID */
 #define DEVICE_ID 0x55
 
+#if SSP_DBG
+#define SSP_FUNC_DBG 1
+#define SSP_DATA_DBG 0
 
 #define ssp_dbg(dev, format, ...) do { \
 	printk(KERN_INFO dev, format, ##__VA_ARGS__); \
@@ -84,7 +83,7 @@
 #define ssp_dbg(dev, format, ...)
 #endif
 
-#if SSP_FUNC_DBG
+#if SSP_DBG
 #define func_dbg() do { \
 	printk(KERN_INFO "[SSP]: %s\n", __func__); \
 	} while (0)
@@ -92,7 +91,7 @@
 #define func_dbg()
 #endif
 
-#if SSP_DATA_DBG
+#if SSP_DBG
 #define data_dbg(dev, format, ...) do { \
 	printk(KERN_INFO dev, format, ##__VA_ARGS__); \
 	} while (0)
