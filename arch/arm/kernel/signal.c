@@ -92,10 +92,10 @@ sys_sigaction(int sig, const struct old_sigaction __user *act,
 		old_sigset_t mask;
 		if (!access_ok(VERIFY_READ, act, sizeof(*act)) ||
 		    __get_user(new_ka.sa.sa_handler, &act->sa_handler) ||
-		    __get_user(new_ka.sa.sa_restorer, &act->sa_restorer))
+		    __get_user(new_ka.sa.sa_restorer, &act->sa_restorer) ||
+		    __get_user(new_ka.sa.sa_flags, &act->sa_flags) ||
+		    __get_user(mask, &act->sa_mask))
 			return -EFAULT;
-		__get_user(new_ka.sa.sa_flags, &act->sa_flags);
-		__get_user(mask, &act->sa_mask);
 		siginitset(&new_ka.sa.sa_mask, mask);
 	}
 
@@ -104,10 +104,10 @@ sys_sigaction(int sig, const struct old_sigaction __user *act,
 	if (!ret && oact) {
 		if (!access_ok(VERIFY_WRITE, oact, sizeof(*oact)) ||
 		    __put_user(old_ka.sa.sa_handler, &oact->sa_handler) ||
-		    __put_user(old_ka.sa.sa_restorer, &oact->sa_restorer))
+		    __put_user(old_ka.sa.sa_restorer, &oact->sa_restorer) ||
+		    __put_user(old_ka.sa.sa_flags, &oact->sa_flags) ||
+		    __put_user(old_ka.sa.sa_mask.sig[0], &oact->sa_mask))
 			return -EFAULT;
-		__put_user(old_ka.sa.sa_flags, &oact->sa_flags);
-		__put_user(old_ka.sa.sa_mask.sig[0], &oact->sa_mask);
 	}
 
 	return ret;
@@ -440,17 +440,12 @@ setup_return(struct pt_regs *regs, struct k_sigaction *ka,
 		 */
 		thumb = handler & 1;
 
-#if __LINUX_ARM_ARCH__ >= 6
+#if __LINUX_ARM_ARCH__ >= 7
 		/*
-		 * Clear the If-Then Thumb-2 execution state.  ARM spec
-		 * requires this to be all 000s in ARM mode.  Snapdragon
-		 * S4/Krait misbehaves on a Thumb=>ARM signal transition
-		 * without this.
-		 *
-		 * We must do this whenever we are running on a Thumb-2
-		 * capable CPU, which includes ARMv6T2.  However, we elect
-		 * to do this whenever we're on an ARMv6 or later CPU for
-		 * simplicity.
+		 * Clear the If-Then Thumb-2 execution state
+		 * ARM spec requires this to be all 000s in ARM mode
+		 * Snapdragon S4/Krait misbehaves on a Thumb=>ARM
+		 * signal transition without this.
 		 */
 		cpsr &= ~PSR_IT_MASK;
 #endif
