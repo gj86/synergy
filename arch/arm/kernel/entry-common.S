@@ -50,6 +50,11 @@ ret_fast_syscall:
 fast_work_pending:
 	str	r0, [sp, #S_R0+S_OFF]!		@ returned r0
 work_pending:
+	tst	r1, #_TIF_NEED_RESCHED
+	bne	work_resched
+	/*
+	 * TIF_SIGPENDING or TIF_NOTIFY_RESUME must've been set if we got here
+	 */
 	mov	r0, sp				@ 'regs'
 	mov	r2, why				@ 'syscall'
 	bl	do_work_pending
@@ -330,8 +335,8 @@ ENDPROC(ftrace_stub)
  *-----------------------------------------------------------------------------
  */
 
-	/* If we're optimising for StrongARM the resulting code won't 
-	   run on an ARM7 and we can save a couple of instructions.  
+	/* If we're optimising for StrongARM the resulting code won't
+	   run on an ARM7 and we can save a couple of instructions.
 								--pb */
 #ifdef CONFIG_CPU_ARM710
 #define A710(code...) code
@@ -454,7 +459,7 @@ local_restart:
 2:	mov	why, #0				@ no longer a real syscall
 	cmp	scno, #(__ARM_NR_BASE - __NR_SYSCALL_BASE)
 	eor	r0, scno, #__NR_SYSCALL_BASE	@ put OS number back
-	bcs	arm_syscall	
+	bcs	arm_syscall
 	b	sys_ni_syscall			@ not private func
 ENDPROC(vector_swi)
 
