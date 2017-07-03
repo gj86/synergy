@@ -521,7 +521,7 @@ static void register_disk(struct gendisk *disk)
 	int err;
 
 #ifdef CONFIG_BLOCK_SUPPORT_STLOG
-	int major 			= disk->major;	
+	int major 			= disk->major;
 	int first_minor 	= disk->first_minor;
 #endif
 
@@ -645,7 +645,7 @@ void del_gendisk(struct gendisk *disk)
 	struct disk_part_iter piter;
 	struct hd_struct *part;
 
-#ifdef CONFIG_BLOCK_SUPPORT_STLOG	
+#ifdef CONFIG_BLOCK_SUPPORT_STLOG
 	struct device *dev;
 #endif
 
@@ -681,7 +681,7 @@ void del_gendisk(struct gendisk *disk)
 	dev=disk_to_dev(disk);
 	ST_LOG("<%s> KOBJ_REMOVE %d:%d %s",
 	__func__,MAJOR(dev->devt),MINOR(dev->devt),dev->kobj.name);
-#endif	
+#endif
 	device_del(disk_to_dev(disk));
 }
 EXPORT_SYMBOL(del_gendisk);
@@ -1536,7 +1536,8 @@ static void __disk_unblock_events(struct gendisk *disk, bool check_now)
 	intv = disk_events_poll_jiffies(disk);
 	set_timer_slack(&ev->dwork.timer, intv / 4);
 	if (check_now)
-		queue_delayed_work(system_nrt_freezable_wq, &ev->dwork, 0);
+		queue_delayed_work(system_freezable_power_efficient_wq,
+				&ev->dwork, 0);
 	else if (intv)
 		queue_delayed_work(system_nrt_freezable_wq, &ev->dwork, intv);
 out_unlock:
@@ -1582,7 +1583,8 @@ void disk_flush_events(struct gendisk *disk, unsigned int mask)
 	ev->clearing |= mask;
 	if (!ev->block) {
 		cancel_delayed_work(&ev->dwork);
-		queue_delayed_work(system_nrt_freezable_wq, &ev->dwork, 0);
+		queue_delayed_work(system_freezable_power_efficient_wq,
+				&ev->dwork, 0);
 	}
 	spin_unlock_irq(&ev->lock);
 }
@@ -1659,7 +1661,8 @@ static void disk_events_workfn(struct work_struct *work)
 
 	intv = disk_events_poll_jiffies(disk);
 	if (!ev->block && intv)
-		queue_delayed_work(system_nrt_freezable_wq, &ev->dwork, intv);
+		queue_delayed_work(system_freezable_power_efficient_wq,
+				&ev->dwork, intv);
 
 	spin_unlock_irq(&ev->lock);
 
