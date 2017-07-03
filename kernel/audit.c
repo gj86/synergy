@@ -416,7 +416,7 @@ static void kauditd_send_skb(struct sk_buff *skb)
 #ifdef CONFIG_PROC_AVC
 		struct nlmsghdr *nlh = nlmsg_hdr(skb);
 		char *data = NLMSG_DATA(nlh);
-	
+
 		if (nlh->nlmsg_type != AUDIT_EOE && nlh->nlmsg_type != AUDIT_NETFILTER_CFG) {
 			sec_avc_log("%s\n", data);
 		}
@@ -1295,6 +1295,9 @@ out:
 void audit_log_format(struct audit_buffer *ab, const char *fmt, ...)
 {
 	va_list args;
+
+	if (console_loglevel < 7)
+		return;
 
 	if (!ab)
 		return;
