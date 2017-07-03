@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2015, Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2015,2016 Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -444,7 +444,7 @@ int q6lsm_register_sound_model(struct lsm_client *client,
 	rmb();
 	cmd.mem_map_handle = client->sound_model.mem_map_handle;
 
-	pr_debug("%s: addr %pa, size %d, handle %x\n", __func__,
+	pr_debug("%s: addr %pK, size %d, handle 0x%x\n", __func__,
 		&client->sound_model.phys, cmd.model_size, cmd.mem_map_handle);
 	rc = q6lsm_apr_send_pkt(client, client->apr, &cmd, true, NULL);
 	if (rc)

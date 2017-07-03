@@ -1,4 +1,4 @@
-/* Copyright (c) 2012-2013, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2012-2013,2016, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -470,9 +470,9 @@ static void afe_send_cal_block(int32_t path, u16 port_id)
 	afe_cal.param.mem_map_handle =
 			atomic_read(&this_afe.mem_map_cal_handles[path]);
 
-	pr_debug("%s: AFE cal sent for device port = %d, path = %d, cal size = %d, cal addr = 0x%x\n",
+	pr_debug("%s: AFE cal sent for device port = %d, path = %d, cal size = %d, cal addr = 0x%pK\n",
 		__func__, port_id, path,
-		cal_block.cal_size, cal_block.cal_paddr);
+		cal_block.cal_size, &cal_block.cal_paddr);
 
 	result = afe_apr_send_pkt(&afe_cal, &this_afe.wait[index]);
 	if (result)
@@ -622,7 +622,7 @@ static int afe_dsm_spk_prot_prepare(int port, int param_id,
 		if(port == maxdsm_get_port_id())
 			config.pdata.module_id = maxdsm_get_rx_mod_id();
 		else
-			config.pdata.module_id = maxdsm_get_tx_mod_id();
+			config.pdata.module_id = AFE_PARAM_ID_ENABLE_DSM_TX;
 		break;
 	case AFE_PARAM_ID_FEEDBACK_PATH_CFG:
 		this_afe.vi_tx_port = port;
@@ -2104,10 +2104,10 @@ int q6afe_audio_client_buf_alloc_contiguous(unsigned int dir,
 			buf[cnt].used = dir ^ 1;
 			buf[cnt].size = bufsz;
 			buf[cnt].actual_size = bufsz;
-			pr_debug("%s data[%p]phys[%p][%p]\n", __func__,
-				   (void *)buf[cnt].data,
-				   (void *)buf[cnt].phys,
-				   (void *)&buf[cnt].phys);
+			pr_debug("%s:  data[%pK]phys[%pK][%pK]\n", __func__,
+				   buf[cnt].data,
+				   &buf[cnt].phys,
+				   &buf[cnt].phys);
 		}
 		cnt++;
 	}
@@ -2189,8 +2189,8 @@ int afe_cmd_memory_map(u32 dma_addr_p, u32 dma_buf_sz)
 	mregion_pl->shm_addr_msw = 0x00;
 	mregion_pl->mem_size_bytes = dma_buf_sz;
 
-	pr_debug("%s: dma_addr_p 0x%x , size %d\n", __func__,
-					dma_addr_p, dma_buf_sz);
+	pr_debug("%s: dma_addr_p 0x%pK , size %d\n", __func__,
+					&dma_addr_p, dma_buf_sz);
 	atomic_set(&this_afe.state, 1);
 	atomic_set(&this_afe.status, 0);
 	this_afe.mmap_handle = 0;
@@ -2299,13 +2299,13 @@ int q6afe_audio_client_buf_free_contiguous(unsigned int dir,
 	cnt = port->max_buf_cnt - 1;
 
 	if (port->buf[0].data) {
-		pr_debug("%s:data[%p]phys[%p][%p] , client[%p] handle[%p]\n",
+		pr_debug("%s: data[%pK]phys[%pK][%pK] , client[%pK] handle[%pK]\n",
 			__func__,
-			(void *)port->buf[0].data,
-			(void *)port->buf[0].phys,
-			(void *)&port->buf[0].phys,
-			(void *)port->buf[0].client,
-			(void *)port->buf[0].handle);
+			port->buf[0].data,
+			&port->buf[0].phys,
+			&port->buf[0].phys,
+			port->buf[0].client,
+			port->buf[0].handle);
 		msm_audio_ion_free(port->buf[0].client, port->buf[0].handle);
 		port->buf[0].client = NULL;
 		port->buf[0].handle = NULL;
@@ -3335,7 +3335,7 @@ int afe_dsm_spk_prot_get_calib_data(struct afe_dsm_spkr_prot_get_vi_calib *calib
 
 	pr_info("%s: port_id = 0x%x, module_id = 0x%x\n",
 		__func__, q6audio_get_port_id(port), maxdsm_get_rx_mod_id());
-	
+
 	if (!calib_resp) {
 		pr_err("%s Invalid params\n", __func__);
 		goto fail_cmd;

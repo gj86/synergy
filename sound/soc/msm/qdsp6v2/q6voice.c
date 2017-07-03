@@ -1,4 +1,4 @@
-/*  Copyright (c) 2012-2014, The Linux Foundation. All rights reserved.
+/*  Copyright (c) 2012-2014,2016, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -64,9 +64,9 @@ void voc_set_loopback_enable(int mode)
 {
 	loopback_prev_mode = loopback_mode;
 	loopback_mode = mode;
-	
+
 	pr_info("%s : prev_mode = %d, mode = %d\n",
-		__func__, loopback_prev_mode, mode);	
+		__func__, loopback_prev_mode, mode);
 }
 
 int voc_get_roaming_enable(void)
@@ -77,9 +77,9 @@ int voc_get_roaming_enable(void)
 void voc_set_roaming_enable(int mode)
 {
 	In_roaming = mode;
-	
+
 	pr_info("%s : In_roaming = %d, mode = %d\n",
-		__func__, In_roaming, mode);	
+		__func__, In_roaming, mode);
 }
 
 static int voice_send_enable_vocproc_cmd(struct voice_data *v);
@@ -118,7 +118,7 @@ static int32_t qdsp_cvp_callback(struct apr_client_data *data, void *priv);
 static int voice_send_set_pp_enable_cmd(struct voice_data *v,
 					uint32_t module_id, int enable);
 static int send_packet_loopback_cmd(struct voice_data *v, bool mode);
-					
+
 static int is_cal_memory_allocated(void);
 static int is_voip_memory_allocated(void);
 static int voice_alloc_cal_mem_map_table(void);
@@ -127,7 +127,7 @@ static int voice_alloc_oob_shared_mem(void);
 static int voice_free_oob_shared_mem(void);
 static int voice_alloc_oob_mem_table(void);
 static int voice_alloc_and_map_cal_mem(struct voice_data *v);
-static int voice_alloc_and_map_oob_mem(struct voice_data *v);		
+static int voice_alloc_and_map_oob_mem(struct voice_data *v);
 static int voc_disable_cvp(uint32_t session_id);
 static int voc_enable_cvp(uint32_t session_id);
 
@@ -347,8 +347,8 @@ static struct voice_data *voice_get_session(u32 session_id)
 		break;
 	}
 
-	pr_debug("%s:session_id 0x%x session handle 0x%x\n",
-		__func__, session_id, (unsigned int)v);
+	pr_debug("%s:session_id 0x%x session handle %pK\n",
+		__func__, session_id, v);
 
 	return v;
 }
@@ -3052,8 +3052,9 @@ int voc_map_rtac_block(struct rtac_cal_block_data *cal_block)
 	if (!is_rtac_memory_allocated()) {
 		result = voice_alloc_rtac_mem_map_table();
 		if (result < 0) {
-			pr_err("%s: RTAC alloc mem map table did not work! addr = 0x%x, size = %d\n",
-				__func__, cal_block->cal_data.paddr,
+			pr_err("%s: RTAC alloc mem map table did not work! addr = 0x%pK, size = %d\n",
+				__func__,
+				&cal_block->cal_data.paddr,
 				cal_block->map_data.map_size);
 
 			goto err;
@@ -3066,8 +3067,9 @@ int voc_map_rtac_block(struct rtac_cal_block_data *cal_block)
 		cal_block->map_data.map_size,
 		VOC_RTAC_MEM_MAP_TOKEN);
 	if (result < 0) {
-		pr_err("%s: RTAC mmap did not work! addr = 0x%x, size = %d\n",
-			__func__, cal_block->cal_data.paddr,
+		pr_err("%s: RTAC mmap did not work! addr = 0x%pK, size = %d\n",
+			__func__,
+			&cal_block->cal_data.paddr,
 			cal_block->map_data.map_size);
 
 		free_rtac_map_table();
@@ -3294,8 +3296,8 @@ static int voice_setup_vocproc(struct voice_data *v)
 
 		voice_send_netid_timing_cmd(v);
 	}
-	
-	
+
+
 	if (v->st_enable && !v->tty_mode)
 		voice_send_set_pp_enable_cmd(v,
 					     MODULE_ID_VOICE_MODULE_ST,
@@ -4815,7 +4817,7 @@ int voc_set_pp_enable(uint32_t session_id, uint32_t module_id, uint32_t enable)
 			if (module_id == MODULE_ID_VOICE_MODULE_ST)
 				v->st_enable = enable;
 
-			if (v->voc_state == VOC_RUN) {		    
+			if (v->voc_state == VOC_RUN) {
 				if ((module_id == MODULE_ID_VOICE_MODULE_ST) &&
 					(!v->tty_mode))
 					ret = voice_send_set_pp_enable_cmd(v,
@@ -5312,7 +5314,7 @@ int voc_start_voice_call(uint32_t session_id)
 			} else {
 				pr_info("%s : send packet loopback enable cmd success\n", __func__);
 			}
-		}		
+		}
 
 		v->voc_state = VOC_RUN;
 	} else {
@@ -5469,7 +5471,7 @@ static int voice_send_dha_data(struct voice_data *v)
 		pr_err("%s: wait_event timeout\n", __func__);
 		goto fail;
 	}
-	
+
 	return 0;
 
 fail:
@@ -5787,7 +5789,7 @@ static int32_t qdsp_cvs_callback(struct apr_client_data *data, void *priv)
 				((loopback_mode == 0) && (loopback_prev_mode == 1))) {
 					v->cvs_state = CMD_STATUS_SUCCESS;
 					wake_up(&v->cvs_wait);
-				}				
+				}
 				break;
 			case VOICE_CMD_GET_PARAM:
 				pr_debug("%s: VOICE_CMD_GET_PARAM\n",
@@ -6175,12 +6177,12 @@ static int voice_alloc_oob_shared_mem(void)
 	pr_debug("%s buf[0].data:[%p], buf[0].phys:[%p], &buf[0].phys:[%p],\n",
 		 __func__,
 		(void *)v->shmem_info.sh_buf.buf[0].data,
-		(void *)v->shmem_info.sh_buf.buf[0].phys,
+		&v->shmem_info.sh_buf.buf[0].phys,
 		(void *)&v->shmem_info.sh_buf.buf[0].phys);
 	pr_debug("%s: buf[1].data:[%p], buf[1].phys[%p], &buf[1].phys[%p]\n",
 		__func__,
 		(void *)v->shmem_info.sh_buf.buf[1].data,
-		(void *)v->shmem_info.sh_buf.buf[1].phys,
+		&v->shmem_info.sh_buf.buf[1].phys,
 		(void *)&v->shmem_info.sh_buf.buf[1].phys);
 
 	memset((void *)v->shmem_info.sh_buf.buf[0].data, 0, (bufsz * bufcnt));
@@ -6221,7 +6223,7 @@ static int voice_alloc_oob_mem_table(void)
 	v->shmem_info.memtbl.size = sizeof(struct vss_imemory_table_t);
 	pr_debug("%s data[%p]phys[%p][%p]\n", __func__,
 		 (void *)v->shmem_info.memtbl.data,
-		 (void *)v->shmem_info.memtbl.phys,
+		  &v->shmem_info.memtbl.phys,
 		 (void *)&v->shmem_info.memtbl.phys);
 
 done:

@@ -142,6 +142,7 @@ static int ion_user_to_kernel(struct smem_client *client, int fd, u32 offset,
 	int align = SZ_4K;
 
 	hndl = ion_import_dma_buf(client->clnt, fd);
+	dprintk(VIDC_DBG, "%s ion handle: %pK\n", __func__, hndl);
 	if (IS_ERR_OR_NULL(hndl)) {
 		dprintk(VIDC_ERR, "Failed to get handle: %pK, %d, %d, %pK\n",
 				client, fd, offset, hndl);
