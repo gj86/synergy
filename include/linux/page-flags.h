@@ -113,6 +113,12 @@ enum pageflags {
 	PG_scfslower,
 	PG_nocache,
 #endif
+#ifdef CONFIG_SDP
+	PG_sensitive,
+#endif
+#ifdef CONFIG_ZCACHE
+	PG_was_active,
+#endif
 	__NR_PAGEFLAGS,
 #if defined(CONFIG_CMA_PAGE_COUNTING)
 	PG_cma,			/* page in CMA area */
@@ -217,6 +223,11 @@ PAGEFLAG(Reserved, reserved) __CLEARPAGEFLAG(Reserved, reserved)
 PAGEFLAG(SwapBacked, swapbacked) __CLEARPAGEFLAG(SwapBacked, swapbacked)
 
 __PAGEFLAG(SlobFree, slob_free)
+#ifdef CONFIG_ZCACHE
+PAGEFLAG(WasActive, was_active)
+#else
+PAGEFLAG_FALSE(WasActive)
+#endif
 
 /*
  * Private page markings that may be used by the filesystem that owns the page
@@ -292,6 +303,24 @@ PAGEFLAG(CMA, cma)
 #endif
 
 u64 stable_page_flags(struct page *page);
+#ifdef CONFIG_SDP
+static inline int PageSensitive(struct page *page)
+{
+	int ret = test_bit(PG_sensitive, &(page)->flags);
+	if (ret)
+		smp_rmb();
+
+	return ret;
+}
+
+static inline void SetPageSensitive(struct page *page)
+{
+	smp_wmb();
+	__set_bit(PG_sensitive, &(page)->flags);
+}
+
+CLEARPAGEFLAG(Sensitive, sensitive)
+#endif
 
 static inline int PageUptodate(struct page *page)
 {

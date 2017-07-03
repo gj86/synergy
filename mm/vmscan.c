@@ -986,7 +986,7 @@ cull_mlocked:
 
 activate_locked:
 		/* Not a candidate for swapping, so reclaim swap space. */
-		if (PageSwapCache(page) && vm_swap_full())
+		if (PageSwapCache(page) && vm_swap_full(page_swap_info(page)))
 			try_to_free_swap(page);
 		VM_BUG_ON(PageActive(page));
 		SetPageActive(page);
@@ -1279,7 +1279,7 @@ putback_inactive_pages(struct mem_cgroup_zone *mz,
 	 */
 	while (!list_empty(page_list)) {
 		struct page *page = lru_to_page(page_list);
-		int lru;
+		int file, lru;
 
 		VM_BUG_ON(PageLRU(page));
 		list_del(&page->lru);
@@ -1292,8 +1292,11 @@ putback_inactive_pages(struct mem_cgroup_zone *mz,
 		SetPageLRU(page);
 		lru = page_lru(page);
 		add_page_to_lru_list(zone, page, lru);
+		file = is_file_lru(lru);
+		if (IS_ENABLED(CONFIG_ZCACHE))
+			if (file)
+				SetPageWasActive(page);
 		if (is_active_lru(lru)) {
-			int file = is_file_lru(lru);
 			int numpages = hpage_nr_pages(page);
 			reclaim_stat->recent_rotated[file] += numpages;
 		}
@@ -1586,6 +1589,12 @@ static void shrink_active_list(unsigned long nr_to_scan,
 		}
 
 		ClearPageActive(page);	/* we are de-activating */
+		if (IS_ENABLED(CONFIG_ZCACHE))
+			/*
+			 * For zcache to know whether the page is from active
+			 * file list
+			 */
+			SetPageWasActive(page);
 		list_add(&page->lru, &l_inactive);
 	}
 
@@ -2212,6 +2221,13 @@ static unsigned long rtcc_do_try_to_free_pages(struct zonelist *zonelist, struct
 			goto out;
 
 		/*
+		 * If we're getting trouble reclaiming, start doing
+		 * writepage even in laptop mode.
+		 */
+		if (sc->priority < DEF_PRIORITY - 2)
+			sc->may_writepage = 1;
+
+		/*
 		 * Try to write back as many pages as we just scanned.  This
 		 * tends to cause slow streaming writers to write data to the
 		 * disk smoothly, at the dirtying rate, which is nice.   But
@@ -2289,7 +2305,7 @@ unsigned long rtcc_reclaim_pages(unsigned long nr_to_reclaim, int swappiness, un
 	rc.nr_file = nr_to_reclaim - rc.nr_anon;
 	rc.nr_swapped = 0;
 	sc.rc = &rc;
-	
+
 	if (swappiness <= 1)
 		sc.may_swap = 0;
 
@@ -2855,12 +2871,10 @@ loop_again:
 			}
 
 			/*
-			 * If we've done a decent amount of scanning and
-			 * the reclaim ratio is low, start doing writepage
-			 * even in laptop mode
+			 * If we're getting trouble reclaiming, start doing
+			 * writepage even in laptop mode.
 			 */
-			if (total_scanned > SWAP_CLUSTER_MAX * 2 &&
-			    total_scanned > sc.nr_reclaimed + sc.nr_reclaimed / 2)
+			if (sc.priority < DEF_PRIORITY - 2)
 				sc.may_writepage = 1;
 
 			if (!zone_reclaimable(zone)) {
