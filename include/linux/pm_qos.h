@@ -34,7 +34,9 @@ struct pm_qos_request {
 };
 
 struct dev_pm_qos_request {
-	struct plist_node node;
+	union {
+		struct plist_node pnode;
+	} data;
 	struct device *dev;
 };
 
