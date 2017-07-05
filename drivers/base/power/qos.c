@@ -368,7 +368,6 @@ int dev_pm_qos_add_notifier(struct device *dev, struct notifier_block *notifier)
 	if (!dev->power.qos)
 		retval = blocking_notifier_chain_register(
 				dev->power.qos->latency.notifiers, notifier);
-				notifier);
 
 	mutex_unlock(&dev_pm_qos_mtx);
 	return ret;
