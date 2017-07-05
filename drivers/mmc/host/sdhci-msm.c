@@ -1419,7 +1419,9 @@ out:
 }
 
 /* Parse platform data */
-static struct sdhci_msm_pltfm_data *sdhci_msm_populate_pdata(struct device *dev)
+static
+struct sdhci_msm_pltfm_data *sdhci_msm_populate_pdata(struct device *dev,
+						struct sdhci_msm_host *msm_host)
 {
 	struct sdhci_msm_pltfm_data *pdata = NULL;
 	struct device_node *np = dev->of_node;
@@ -1544,6 +1546,7 @@ static struct sdhci_msm_pltfm_data *sdhci_msm_populate_pdata(struct device *dev)
 		pr_err("%s: vendor_type=%d \n", __FUNCTION__, vendor_type);
 	}
 #endif
+	msm_host->mmc->wakeup_on_idle = true;
 
 	return pdata;
 out:
@@ -1953,8 +1956,8 @@ static int sdhci_msm_setup_vreg(struct sdhci_msm_pltfm_data *pdata,
 	}
 
 #if defined(CONFIG_SEC_K_PROJECT)
-	/* 
-	 * In SD Card Case using FPGA, 
+	/*
+	 * In SD Card Case using FPGA,
 	 * Turn on : vdd_io on -> vdd on
 	 * Turn off : vdd off -> delay 5msec -> vdd_io off
 	 * vdd : L21, vdd_io : L13
@@ -2366,14 +2369,14 @@ static void sdhci_msm_check_power_status(struct sdhci_host *host, u32 req_type)
 		done = true;
 	spin_unlock_irqrestore(&host->lock, flags);
 
-	/* 
-	 * 8974pro after HW_GPIO_06 uses SDR50 Mode 
+	/*
+	 * 8974pro after HW_GPIO_06 uses SDR50 Mode
 	 * KLTE uses SDR50 on SDC3 port.
-	 * Handle I/O voltage switch here if this request is for SDC3. 
+	 * Handle I/O voltage switch here if this request is for SDC3.
 	 * SDC3 Don't use PWR_IRQ.
 	 */
 #if defined(CONFIG_SEC_K_PROJECT)
-	if (strcmp(host->hw_name, "msm_sdcc.3") == 0 && !done && system_rev >= 6) { 
+	if (strcmp(host->hw_name, "msm_sdcc.3") == 0 && !done && system_rev >= 6) {
 		if (req_type == REQ_IO_HIGH) {
 			/* Switch voltage High */
 			if (sdhci_msm_set_vdd_io_vol(msm_host->pdata, VDD_IO_HIGH, 0)) {
@@ -2382,7 +2385,7 @@ static void sdhci_msm_check_power_status(struct sdhci_host *host, u32 req_type)
 			}
 			msm_host->curr_io_level = REQ_IO_HIGH;
 			done = true;
-		} else if (req_type == REQ_IO_LOW) { 
+		} else if (req_type == REQ_IO_LOW) {
 			/* Switch voltage Low */
 			if (sdhci_msm_set_vdd_io_vol(msm_host->pdata, VDD_IO_LOW, 0)) {
 				pr_err("%s: %s: Voltage Switch to Low is Fail\n", mmc_hostname(host->mmc), __func__);
@@ -2391,9 +2394,9 @@ static void sdhci_msm_check_power_status(struct sdhci_host *host, u32 req_type)
 			msm_host->curr_io_level = REQ_IO_LOW;
 			done = true;
 		}
-	} 
+	}
 #elif defined(CONFIG_SEC_PATEK_PROJECT)
-	if (strcmp(host->hw_name, "msm_sdcc.3") == 0 && !done) { 
+	if (strcmp(host->hw_name, "msm_sdcc.3") == 0 && !done) {
 		if (req_type == REQ_IO_HIGH) {
 			/* Switch voltage High */
 			if (sdhci_msm_set_vdd_io_vol(msm_host->pdata, VDD_IO_HIGH, 0)) {
@@ -2402,7 +2405,7 @@ static void sdhci_msm_check_power_status(struct sdhci_host *host, u32 req_type)
 			}
 			msm_host->curr_io_level = REQ_IO_HIGH;
 			done = true;
-		} else if (req_type == REQ_IO_LOW) { 
+		} else if (req_type == REQ_IO_LOW) {
 			/* Switch voltage Low */
 			if (sdhci_msm_set_vdd_io_vol(msm_host->pdata, VDD_IO_LOW, 0)) {
 				pr_err("%s: %s: Voltage Switch to Low is Fail\n", mmc_hostname(host->mmc), __func__);
@@ -2411,7 +2414,7 @@ static void sdhci_msm_check_power_status(struct sdhci_host *host, u32 req_type)
 			msm_host->curr_io_level = REQ_IO_LOW;
 			done = true;
 		}
-	} 
+	}
 #endif
 	/*
 	 * This is needed here to hanlde a case where IRQ gets
@@ -3085,7 +3088,8 @@ static int __devinit sdhci_msm_probe(struct platform_device *pdev)
 			goto pltfm_free;
 		}
 
-		msm_host->pdata = sdhci_msm_populate_pdata(&pdev->dev);
+		msm_host->pdata = sdhci_msm_populate_pdata(&pdev->dev,
+							   msm_host);
 		if (!msm_host->pdata) {
 			dev_err(&pdev->dev, "DT parsing error\n");
 			goto pltfm_free;
