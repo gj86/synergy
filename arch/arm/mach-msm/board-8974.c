@@ -46,6 +46,9 @@
 #include <mach/socinfo.h>
 #include <mach/msm_smem.h>
 #include <linux/module.h>
+#ifdef CONFIG_ANDROID_PERSISTENT_RAM
+#include <linux/persistent_ram.h>
+#endif
 
 #include "board-dt.h"
 #include "clock.h"
@@ -103,6 +106,41 @@ extern int msm_show_resume_irq_mask;
 #ifdef CONFIG_SEC_PATEK_PROJECT
 #include "board-patek-keypad.c"
 #endif
+
+#ifdef CONFIG_ANDROID_PERSISTENT_RAM
+/* CONFIG_SEC_DEBUG reserving memory for persistent RAM*/
+#define PERSISTENT_RAM_BASE 0x7FA00000
+#define PERSISTENT_RAM_SIZE SZ_1M
+#define RAM_CONSOLE_SIZE (124*SZ_1K * 2)
+
+static struct persistent_ram_descriptor per_ram_descs[] __initdata = {
+#ifdef CONFIG_ANDROID_RAM_CONSOLE
+{
+	.name = "ram_console",
+	.size = RAM_CONSOLE_SIZE,
+}
+#endif /* CONFIG_ANDROID_RAM_CONSOLE */
+};
+
+static struct persistent_ram per_ram __initdata = {
+	.descs = per_ram_descs,
+	.num_descs = ARRAY_SIZE(per_ram_descs),
+	.start = PERSISTENT_RAM_BASE,
+	.size = PERSISTENT_RAM_SIZE
+};
+
+#ifdef CONFIG_ANDROID_RAM_CONSOLE
+static struct platform_device ram_console_device = {
+        .name = "ram_console",
+        .id = -1,
+};
+
+void __init add_ramconsole_devices(void)
+{
+    platform_device_register(&ram_console_device);
+}
+#endif /* CONFIG_ANDROID_RAM_CONSOLE */
+#endif /* CONFIG_ANDROID_PERSISTENT_RAM */
 
 extern int poweroff_charging;
 
@@ -485,6 +523,9 @@ void __init msm_8974_reserve(void)
 {
 	reserve_info = &msm8974_reserve_info;
 	of_scan_flat_dt(dt_scan_for_memory_reserve, msm8974_reserve_table);
+#ifdef CONFIG_ANDROID_PERSISTENT_RAM
+	persistent_ram_early_init(&per_ram);
+#endif
 	msm_reserve();
 #ifdef CONFIG_ANDROID_RAM_CONSOLE
 	add_persistent_ram();
