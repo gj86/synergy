@@ -39,11 +39,11 @@
 #define MIN_TIMER_JIFFIES 			1UL
 #define DEFAULT_TIMER_RATE 			(20 * USEC_PER_MSEC)
 #define DEFAULT_TIMER_SLACK 		(4 * DEFAULT_TIMER_RATE)
-#define DEFAULT_TARGET_LOAD 		95
-#define DEFAULT_HISPEED_FREQ		1728000
+#define DEFAULT_TARGET_LOAD 		93
+#define DEFAULT_HISPEED_FREQ		1574400
 #define DEFAULT_GO_HISPEED_LOAD		99
-#define DEFAULT_SYNC_FREQ 			1267200
-#define DEFAULT_UP_THRESHOLD_FREQ 	1267200
+#define DEFAULT_SYNC_FREQ 			1190400
+#define DEFAULT_UP_THRESHOLD_FREQ 	1190400
 #define DEFAULT_UP_THRESHOLD_LOAD 	69
 #define DEFAULT_MIN_SAMPLE_TIME 	(50 * USEC_PER_MSEC)
 #define DEFAULT_ABOVE_HISPEED_DELAY (80 * USEC_PER_MSEC)
@@ -193,9 +193,9 @@ static void cpufreq_phantom_timer_resched(
 					0);
 	pcpu->cputime_speedadj = 0;
 	pcpu->cputime_speedadj_timestamp = pcpu->time_in_idle_timestamp;
-	
+
 	expires = jiffies + usecs_to_jiffies(timer_rate);
-			
+
 	mod_timer_pinned(&pcpu->cpu_timer, expires);
 
 	if (timer_slack_val >= 0 && pcpu->target_freq > pcpu->policy->min) {
@@ -215,7 +215,7 @@ static void cpufreq_phantom_timer_start(int cpu, int time_override)
 	struct cpufreq_phantom_cpuinfo *pcpu = &per_cpu(cpuinfo, cpu);
 	unsigned long flags;
 	unsigned long expires;
-	
+
 	if (time_override)
 		expires = jiffies + time_override;
 	else
@@ -406,7 +406,7 @@ static void cpufreq_phantom_timer(unsigned long data)
 	int i, max_load;
 	unsigned int max_freq;
 	struct cpufreq_phantom_cpuinfo *picpu;
-	
+
 	if (!down_read_trylock(&pcpu->enable_sem))
 		return;
 	if (!pcpu->governor_enabled)
@@ -414,7 +414,7 @@ static void cpufreq_phantom_timer(unsigned long data)
 
 	if (cpu_is_offline(data))
 		goto exit;
-		
+
 	spin_lock_irqsave(&pcpu->load_lock, flags);
 	now = update_load(data);
 	delta_time = (unsigned int)(now - pcpu->cputime_speedadj_timestamp);
@@ -430,7 +430,7 @@ static void cpufreq_phantom_timer(unsigned long data)
 	pcpu->prev_load = cpu_load;
 	boosted = boost_val || now < boostpulse_endtime;
 
-	
+
 	if (cpu_load >= go_hispeed_load || boosted) {
 		if (pcpu->target_freq < hispeed_freq) {
 			new_freq = hispeed_freq;
@@ -484,7 +484,7 @@ static void cpufreq_phantom_timer(unsigned long data)
 	 * Do not scale below floor_freq unless we have been at or above the
 	 * floor frequency for the minimum sample time since last validated.
 	 */
-	 
+
 	if (sampling_down_factor && pcpu->policy->cur == pcpu->policy->max)
 		mod_min_sample_time = sampling_down_factor;
 	else
@@ -651,11 +651,11 @@ static int cpufreq_phantom_speedchange_task(void *data)
 				if (pjcpu->target_freq > max_freq)
 					max_freq = pjcpu->target_freq;
 			}
-			
+
 			if (power_suspended && max_freq > screen_off_max_frequency)
 					max_freq = screen_off_max_frequency;
 
-			if (max_freq != pcpu->policy->cur) {			
+			if (max_freq != pcpu->policy->cur) {
 				__cpufreq_driver_target(pcpu->policy,
 							max_freq,
 							CPUFREQ_RELATION_H);
@@ -1161,7 +1161,7 @@ static struct global_attr up_threshold_any_cpu_freq_attr =
 		__ATTR(up_threshold_any_cpu_freq, 0644,
 		show_up_threshold_any_cpu_freq,
 				store_up_threshold_any_cpu_freq);
-				
+
 static ssize_t show_screen_off_max_frequency(struct kobject *kobj,
 				struct attribute *attr, char *buf)
 {
@@ -1185,7 +1185,7 @@ static ssize_t store_screen_off_max_frequency(struct kobject *kobj,
 static struct global_attr screen_off_max_frequency_attr =
 				__ATTR(screen_off_max_frequency, 0644,
 		show_screen_off_max_frequency, store_screen_off_max_frequency);
-		
+
 static struct attribute *phantom_attributes[] = {
 	&target_loads_attr.attr,
 	&above_hispeed_delay_attr.attr,
@@ -1429,7 +1429,7 @@ static int __init cpufreq_phantom_init(void)
 	}
 
 	register_power_suspend(&phantom_power);
-	
+
 	spin_lock_init(&target_loads_lock);
 	spin_lock_init(&speedchange_cpumask_lock);
 	spin_lock_init(&above_hispeed_delay_lock);
