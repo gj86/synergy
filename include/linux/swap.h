@@ -413,7 +413,7 @@ mem_cgroup_uncharge_swapcache(struct page *page, swp_entry_t ent, bool swapout)
 
 #define get_nr_swap_pages()			0L
 #define total_swap_pages			0L
-#define total_swapcache_pages		0UL
+#define total_swapcache_pages()		0UL
 #define vm_swap_full(si)			0
 
 #define si_swapinfo(val) \
