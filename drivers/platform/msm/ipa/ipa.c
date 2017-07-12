@@ -239,7 +239,6 @@ static long ipa_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		}
 		pre_entry =
 			((struct ipa_ioc_nat_dma_cmd *)header)->entries;
-
 		pyld_sz =
 		   sizeof(struct ipa_ioc_nat_dma_cmd) +
 		   pre_entry * sizeof(struct ipa_ioc_nat_dma_one);
@@ -329,7 +328,7 @@ static long ipa_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 			((struct ipa_ioc_del_hdr *)header)->num_hdls;
 		pyld_sz =
 		   sizeof(struct ipa_ioc_del_hdr) +
-		    pre_entry * sizeof(struct ipa_hdr_del);
+		   pre_entry * sizeof(struct ipa_hdr_del);
 		param = kzalloc(pyld_sz, GFP_KERNEL);
 		if (!param) {
 			retval = -ENOMEM;
@@ -382,8 +381,7 @@ static long ipa_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		if (unlikely(((struct ipa_ioc_add_rt_rule *)param)->num_rules
 			!= pre_entry)) {
 			IPAERR("current %d pre %d\n",
-				((struct ipa_ioc_add_rt_rule *)param)->
-				num_rules,
+				((struct ipa_ioc_add_rt_rule *)param)->num_rules,
 				pre_entry);
 			retval = -EFAULT;
 			break;
@@ -461,8 +459,7 @@ static long ipa_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		if (unlikely(((struct ipa_ioc_add_flt_rule *)param)->num_rules
 			!= pre_entry)) {
 			IPAERR("current %d pre %d\n",
-				((struct ipa_ioc_add_flt_rule *)param)->
-				num_rules,
+				((struct ipa_ioc_add_flt_rule *)param)->num_rules,
 				pre_entry);
 			retval = -EFAULT;
 			break;
@@ -487,7 +484,7 @@ static long ipa_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 			((struct ipa_ioc_del_flt_rule *)header)->num_hdls;
 		pyld_sz =
 		   sizeof(struct ipa_ioc_del_flt_rule) +
-		    pre_entry * sizeof(struct ipa_flt_rule_del);
+		   pre_entry * sizeof(struct ipa_flt_rule_del);
 		param = kzalloc(pyld_sz, GFP_KERNEL);
 		if (!param) {
 			retval = -ENOMEM;
@@ -501,8 +498,7 @@ static long ipa_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		if (unlikely(((struct ipa_ioc_del_flt_rule *)param)->num_hdls
 			!= pre_entry)) {
 			IPAERR("current %d pre %d\n",
-				((struct ipa_ioc_del_flt_rule *)param)->
-				num_hdls,
+				((struct ipa_ioc_del_flt_rule *)param)->num_hdls,
 				pre_entry);
 			retval = -EFAULT;
 			break;
@@ -617,13 +613,11 @@ static long ipa_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 			retval = -EFAULT;
 			break;
 		}
-
 		if (((struct ipa_ioc_query_intf_tx_props *)
 			header)->num_tx_props > IPA_NUM_PROPS_MAX) {
 			retval = -EFAULT;
 			break;
 		}
-
 		pre_entry =
 			((struct ipa_ioc_query_intf_tx_props *)
 			header)->num_tx_props;
@@ -664,13 +658,11 @@ static long ipa_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 			retval = -EFAULT;
 			break;
 		}
-
 		if (((struct ipa_ioc_query_intf_rx_props *)
 			header)->num_rx_props > IPA_NUM_PROPS_MAX) {
 			retval = -EFAULT;
 			break;
 		}
-
 		pre_entry =
 			((struct ipa_ioc_query_intf_rx_props *)
 			header)->num_rx_props;
@@ -712,7 +704,8 @@ static long ipa_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		}
 		pre_entry =
 			((struct ipa_msg_meta *)header)->msg_len;
-		pyld_sz = sizeof(struct ipa_msg_meta) + pre_entry;
+		pyld_sz = sizeof(struct ipa_msg_meta) +
+		   pre_entry;
 		param = kzalloc(pyld_sz, GFP_KERNEL);
 		if (!param) {
 			retval = -ENOMEM;
@@ -2343,4 +2336,3 @@ subsys_initcall(ipa_module_init);
 
 MODULE_LICENSE("GPL v2");
 MODULE_DESCRIPTION("IPA HW device driver");
-
