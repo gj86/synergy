@@ -76,7 +76,7 @@ static struct workqueue_struct *workqueue;
  * performance cost, and for other reasons may not always be desired.
  * So we allow it it to be disabled.
  */
-bool use_spi_crc = 1;
+bool use_spi_crc = 0;
 module_param(use_spi_crc, bool, 0);
 
 /*
@@ -2503,7 +2503,7 @@ int mmc_erase(struct mmc_card *card, unsigned int from, unsigned int nr,
 
 	if (to <= from)
 		return -EINVAL;
-		
+
 		/* to set the address in 16k (32sectors) */
 	if(arg == MMC_TRIM_ARG) {
 		if ((from % 32) != 0)
@@ -3896,19 +3896,19 @@ void mmc_init_context_info(struct mmc_host *host)
 #define MIN_WAIT_MS	5
 static int mmc_wait_trans_state(struct mmc_card *card, unsigned int wait_ms)
 {
-	int waited = 0; 
-	int status = 0; 
+	int waited = 0;
+	int status = 0;
 
 	mmc_send_status(card, &status);
 
 	while (R1_CURRENT_STATE(status) != R1_STATE_TRAN) {
-		if (waited > wait_ms) 
-			return 0; 
-		mdelay(MIN_WAIT_MS); 
-		waited += MIN_WAIT_MS; 
+		if (waited > wait_ms)
+			return 0;
+		mdelay(MIN_WAIT_MS);
+		waited += MIN_WAIT_MS;
 		mmc_send_status(card, &status);
 	}
-	return waited; 
+	return waited;
 }
 
 /*
@@ -3929,18 +3929,18 @@ int mmc_bkops_enable(struct mmc_host *host, u8 value)
 	/* read ext_csd to get EXT_CSD_BKOPS_EN field value */
 	err = mmc_send_ext_csd(card, ext_csd);
 	if (err) {
-		/* try again after some delay. (send HPI if needed) */ 
-		if (err == -ETIMEDOUT && mmc_card_doing_bkops(card)) { 
-			err = mmc_stop_bkops(card); 
+		/* try again after some delay. (send HPI if needed) */
+		if (err == -ETIMEDOUT && mmc_card_doing_bkops(card)) {
+			err = mmc_stop_bkops(card);
 			if (err) {
-				pr_err("%s: failed to stop bkops. err = %d\n", 
+				pr_err("%s: failed to stop bkops. err = %d\n",
 					mmc_hostname(card->host), err);
-				goto bkops_out; 
+				goto bkops_out;
 			}
-		} 
+		}
 
 		/* Max HPI latency is 100 ms */
-		mmc_wait_trans_state(card, 100); 
+		mmc_wait_trans_state(card, 100);
 		err = mmc_send_ext_csd(card, ext_csd);
 		if (err) {
 			pr_err("%s: error %d sending ext_csd\n",
@@ -3961,7 +3961,7 @@ int mmc_bkops_enable(struct mmc_host *host, u8 value)
 	}
 
 	/* read ext_csd again to get EXT_CSD_BKOPS_EN field value */
-	mmc_wait_trans_state(card, 20); 
+	mmc_wait_trans_state(card, 20);
 	err = mmc_send_ext_csd(card, ext_csd);
 	if (!err) {
 		spin_lock_irqsave(&card->bkops_lock, flags);
