@@ -19,8 +19,6 @@
 #include <linux/cpufreq.h>
 #ifdef CONFIG_POWERSUSPEND
 #include <linux/powersuspend.h>
-#else
-#include <linux/lcd_notify.h>
 #endif
 
 #include <soc/qcom/limiter.h>
@@ -129,26 +127,6 @@ static struct power_suspend msm_limit_power_suspend_driver = {
 	.suspend = __msm_limit_suspend,
 	.resume = __msm_limit_resume,
 };
-#else
-static int lcd_notifier_callback(struct notifier_block *nb,
-                                 unsigned long event, void *data)
-{
-	switch (event) {
-	case LCD_EVENT_ON_END:
-	case LCD_EVENT_OFF_START:
-		break;
-	case LCD_EVENT_ON_START:
-		__msm_limit_resume();
-		break;
-	case LCD_EVENT_OFF_END:
-		__msm_limit_suspend();
-		break;
-	default:
-		break;
-	}
-
-	return NOTIFY_OK;
-}
 #endif
 
 static int msm_cpufreq_limit_start(void)
@@ -167,14 +145,6 @@ static int msm_cpufreq_limit_start(void)
 
 #ifdef CONFIG_POWERSUSPEND
 	register_power_suspend(&msm_limit_power_suspend_driver);
-#else
-	limit.notif.notifier_call = lcd_notifier_callback;
-	ret = lcd_register_client(&limit.notif);
-	if (ret != 0) {
-		pr_err("%s: Failed to register LCD notifier callback\n",
-			MSM_LIMIT);
-		goto err_dev;
-	}
 #endif
 
 	for_each_possible_cpu(cpu)
@@ -206,14 +176,11 @@ static void msm_cpufreq_limit_stop(void)
 	cancel_work_sync(&limit.resume_work);
 	cancel_delayed_work_sync(&limit.suspend_work);
 	mutex_destroy(&limit.resume_suspend_mutex);
-	for_each_possible_cpu(cpu)	
+	for_each_possible_cpu(cpu)
 		mutex_destroy(&limit.msm_limiter_mutex[cpu]);
 
 #ifdef CONFIG_POWERSUSPEND
 	unregister_power_suspend(&msm_limit_power_suspend_driver);
-#else
-	lcd_unregister_client(&limit.notif);
-	limit.notif.notifier_call = NULL;
 #endif
 	destroy_workqueue(limiter_wq);
 }
