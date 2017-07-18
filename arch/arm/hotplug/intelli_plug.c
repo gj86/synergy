@@ -27,10 +27,6 @@
 #include <linux/powersuspend.h>
 #endif
 
-#ifdef CONFIG_HAS_EARLYSUSPEND
-#include <linux/earlysuspend.h>
-#endif
-
 //#define DEBUG_INTELLI_PLUG
 #undef DEBUG_INTELLI_PLUG
 
@@ -335,7 +331,7 @@ static void __ref intelli_plug_work_fn(struct work_struct *work)
 		msecs_to_jiffies(sampling_time));
 }
 
-#if defined(CONFIG_POWERSUSPEND) || defined(CONFIG_HAS_EARLYSUSPEND)
+#if defined(CONFIG_POWERSUSPEND)
 static void screen_off_limit(bool on)
 {
 	unsigned int cpu;
@@ -374,6 +370,7 @@ static void screen_off_limit(bool on)
 		cpufreq_update_policy(cpu);
 	}
 }
+#endif
 
 void __ref intelli_plug_perf_boost(bool on)
 {
@@ -433,30 +430,6 @@ static struct attribute_group intelli_plug_perf_boost_attr_group = {
 static struct kobject *intelli_plug_perf_boost_kobj;
 /* sysfs interface for performance boost (END) */
 
-#ifdef CONFIG_POWERSUSPEND
-static void intelli_plug_suspend(struct power_suspend *handler)
-#else
-static void intelli_plug_suspend(struct early_suspend *handler)
-#endif
-{
-	if (intelli_plug_active) {
-		int cpu;
-	
-		flush_workqueue(intelliplug_wq);
-
-		mutex_lock(&intelli_plug_mutex);
-		suspended = true;
-		screen_off_limit(true);
-		mutex_unlock(&intelli_plug_mutex);
-
-		// put rest of the cores to sleep unconditionally!
-		for_each_online_cpu(cpu) {
-			if (cpu != 0)
-				cpu_down(cpu);
-		}
-	}
-}
-
 static void wakeup_boost(void)
 {
 	unsigned int cpu;
@@ -472,10 +445,27 @@ static void wakeup_boost(void)
 }
 
 #ifdef CONFIG_POWERSUSPEND
+static void intelli_plug_suspend(struct power_suspend *handler)
+{
+	if (intelli_plug_active) {
+		int cpu;
+
+		flush_workqueue(intelliplug_wq);
+
+		mutex_lock(&intelli_plug_mutex);
+		suspended = true;
+		screen_off_limit(true);
+		mutex_unlock(&intelli_plug_mutex);
+
+		// put rest of the cores to sleep unconditionally!
+		for_each_online_cpu(cpu) {
+			if (cpu != 0)
+				cpu_down(cpu);
+		}
+	}
+}
+
 static void __ref intelli_plug_resume(struct power_suspend *handler)
-#else
-static void __ref intelli_plug_resume(struct early_suspend *handler)
-#endif
 {
 	if (intelli_plug_active) {
 		mutex_lock(&intelli_plug_mutex);
@@ -490,22 +480,12 @@ static void __ref intelli_plug_resume(struct early_suspend *handler)
 	queue_delayed_work_on(0, intelliplug_wq, &intelli_plug_work,
 		msecs_to_jiffies(10));
 }
-#endif
 
-#ifdef CONFIG_POWERSUSPEND
 static struct power_suspend intelli_plug_power_suspend_driver = {
 	.suspend = intelli_plug_suspend,
 	.resume = intelli_plug_resume,
 };
 #endif  /* CONFIG_POWERSUSPEND */
-
-#ifdef CONFIG_HAS_EARLYSUSPEND
-static struct early_suspend intelli_plug_early_suspend_driver = {
-        .level = EARLY_SUSPEND_LEVEL_DISABLE_FB + 10,
-        .suspend = intelli_plug_suspend,
-        .resume = intelli_plug_resume,
-};
-#endif	/* CONFIG_HAS_EARLYSUSPEND */
 
 static int __ref intelli_plug_pm_notifier(struct notifier_block *notifier,
 					unsigned long pm_event, void *v) {
@@ -606,7 +586,7 @@ static struct input_handler intelli_plug_input_handler = {
 int __init intelli_plug_init(void)
 {
 	int rc;
-#if defined (CONFIG_POWERSUSPEND) || defined(CONFIG_HAS_EARLYSUSPEND)
+#if defined (CONFIG_POWERSUSPEND)
 	struct cpufreq_policy *policy;
 	struct ip_cpu_info *l_ip_info;
 #endif
@@ -625,20 +605,15 @@ int __init intelli_plug_init(void)
 		nr_run_profile_sel = NR_RUN_ECO_MODE_PROFILE;
 	}
 
-#if defined (CONFIG_POWERSUSPEND) || defined(CONFIG_HAS_EARLYSUSPEND)
+#if defined (CONFIG_POWERSUSPEND)
 	l_ip_info = &per_cpu(ip_info, 0);
 	policy = cpufreq_cpu_get(0);
 	l_ip_info->sys_max = policy->cpuinfo.max_freq;
 	l_ip_info->cur_max = policy->max;
-#endif
 
-	rc = input_register_handler(&intelli_plug_input_handler);
-#ifdef CONFIG_POWERSUSPEND
 	register_power_suspend(&intelli_plug_power_suspend_driver);
 #endif
-#ifdef CONFIG_HAS_EARLYSUSPEND
-	register_early_suspend(&intelli_plug_early_suspend_driver);
-#endif
+	rc = input_register_handler(&intelli_plug_input_handler);
 	register_pm_notifier(&intelli_plug_pm_nb);
 	intelliplug_wq = alloc_workqueue("intelliplug",
 				WQ_HIGHPRI | WQ_UNBOUND, 1);

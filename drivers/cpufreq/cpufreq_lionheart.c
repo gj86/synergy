@@ -41,7 +41,6 @@
 #include <linux/input.h>
 #include <linux/workqueue.h>
 #include <linux/slab.h>
-#include <linux/earlysuspend.h>
 
 #define DEF_FREQUENCY_UP_THRESHOLD		(65)
 #define DEF_FREQUENCY_DOWN_THRESHOLD		(30)
@@ -72,7 +71,7 @@ struct cpu_dbs_info_s {
 };
 static DEFINE_PER_CPU(struct cpu_dbs_info_s, cs_cpu_dbs_info);
 
-static unsigned int dbs_enable;	
+static unsigned int dbs_enable;
 
 static DEFINE_MUTEX(dbs_mutex);
 

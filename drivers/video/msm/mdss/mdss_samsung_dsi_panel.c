@@ -22,8 +22,8 @@
 #include <linux/pwm.h>
 #include <linux/err.h>
 #include <linux/lcd.h>
-#ifdef CONFIG_HAS_EARLYSUSPEND
-#include <linux/earlysuspend.h>
+#ifdef CONFIG_POWERSUSPEND
+#include <linux/powersuspend.h>
 #endif
 #include "mdss_dsi.h"
 #include "mdss_samsung_dsi_panel.h"
@@ -3121,6 +3121,11 @@ static int mdss_dsi_panel_on(struct mdss_panel_data *pdata)
 		enable_irq(gpio_to_irq(lcd_crack_gpio));
 	}
 #endif
+
+#ifdef CONFIG_POWERSUSPEND
+	set_power_suspend_state_panel_hook(POWER_SUSPEND_INACTIVE);
+#endif
+
 	return 0;
 }
 
@@ -3168,6 +3173,10 @@ static int mdss_dsi_panel_off(struct mdss_panel_data *pdata)
 
 #if defined(CONFIG_DUAL_LCD)
 	msd.lcd_panel_cmds = 0;
+#endif
+
+#ifdef CONFIG_POWERSUSPEND
+	set_power_suspend_state_panel_hook(POWER_SUSPEND_ACTIVE);
 #endif
 
 	return 0;
@@ -4155,23 +4164,6 @@ static int mdss_panel_parse_dt(struct device_node *np,
 	return -EINVAL;
 }
 
-#if defined(CONFIG_HAS_EARLYSUSPEND)
-static void mipi_samsung_disp_early_suspend(struct early_suspend *h)
-{
-	msd.mfd->resume_state = MIPI_SUSPEND_STATE;
-
-	LCD_DEBUG("------");
-}
-
-static void mipi_samsung_disp_late_resume(struct early_suspend *h)
-{
-
-	msd.mfd->resume_state = MIPI_RESUME_STATE;
-
-	LCD_DEBUG("------");
-}
-#endif
-
 static int is_panel_supported(const char *panel_name)
 {
 	int i = 0;
@@ -4759,13 +4751,6 @@ int mdss_dsi_panel_init(struct device_node *node, struct mdss_dsi_ctrl_pdata *ct
 	}
 #endif
 
-
-#if defined(CONFIG_HAS_EARLYSUSPEND)
-	msd.early_suspend.suspend = mipi_samsung_disp_early_suspend;
-	msd.early_suspend.resume = mipi_samsung_disp_late_resume;
-	msd.early_suspend.level = EARLY_SUSPEND_LEVEL_BLANK_SCREEN-1;
-	register_early_suspend(&msd.early_suspend);
-#endif
 	/*
 	 * unless panel is powered on don't set the state to true
 	 *  This is to handle cases like cont splash or lpm in which panel
