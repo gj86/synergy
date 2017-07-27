@@ -36,7 +36,6 @@ static struct class *bdi_class;
  */
 DEFINE_SPINLOCK(bdi_lock);
 LIST_HEAD(bdi_list);
-LIST_HEAD(bdi_pending_list);
 
 static struct task_struct *sync_supers_tsk;
 static struct timer_list sync_supers_timer;
