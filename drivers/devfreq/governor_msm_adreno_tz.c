@@ -59,7 +59,6 @@ static DEFINE_SPINLOCK(tz_lock);
 #define TAG "msm_adreno_tz: "
 
 /* Boolean to detect if pm has entered suspend mode */
-extern bool cpufreq_screen_on;
 static bool suspended = false;
 static bool power_suspended = false;
 
@@ -144,7 +143,7 @@ static int tz_get_target_freq(struct devfreq *devfreq, unsigned long *freq,
 	 * Force to use & record as min freq when system has
 	 * entered pm-suspend or screen-off state.
 	 */
-	if (suspended || power_suspended || !cpufreq_screen_on) {
+	if (suspended || power_suspended) {
 		*freq = devfreq->min_freq;
 		return 0;
 	}
