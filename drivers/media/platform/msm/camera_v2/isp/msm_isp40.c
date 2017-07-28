@@ -273,13 +273,6 @@ static void msm_vfe40_init_hardware_reg(struct vfe_device *vfe_dev)
 	msm_camera_io_w_mb(0xFEFFFFFF, vfe_dev->vfe_base + 0x34);
 }
 
-static void msm_vfe40_process_reset_irq(struct vfe_device *vfe_dev,
-	uint32_t irq_status0, uint32_t irq_status1)
-{
-	if (irq_status0 & (1 << 31))
-		complete(&vfe_dev->reset_complete);
-}
-
 static void msm_vfe40_process_halt_irq(struct vfe_device *vfe_dev,
 	uint32_t irq_status0, uint32_t irq_status1)
 {
