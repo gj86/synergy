@@ -2067,16 +2067,18 @@ repeat:
 		rescuer->pool = pool;
 		worker_maybe_bind_and_lock(rescuer);
 
-		/*
-		 * Slurp in all works issued via this workqueue and
-		 * process'em.
-		 */
-		BUG_ON(!list_empty(&rescuer->scheduled));
-		list_for_each_entry_safe(work, n, &pool->worklist, entry)
-			if (get_work_cwq(work) == cwq)
-				move_linked_works(work, scheduled, &n);
+		do {
+			/*
+			 * Slurp in all works issued via this workqueue and
+			 * process'em.
+			 */
+			WARN_ON_ONCE(!list_empty(&rescuer->scheduled));
+			list_for_each_entry_safe(work, n, &pool->worklist, entry)
+				if (get_work_cwq(work) == cwq)
+					move_linked_works(work, scheduled, &n);
 
-		process_scheduled_works(rescuer);
+			process_scheduled_works(rescuer);
+		} while (need_to_create_worker(pool) && cwq->nr_active);
 
 		/*
 		 * Leave this gcwq.  If keep_working() is %true, notify a
