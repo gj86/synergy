@@ -729,7 +729,7 @@ int swp_swapcount(swp_entry_t entry)
 		n *= (SWAP_CONT_MAX + 1);
 	} while (tmp_count & COUNT_CONTINUED);
 out:
-	spin_unlock(&swap_lock);
+	spin_unlock(&p->lock);
 	return count;
 }
 
@@ -859,7 +859,7 @@ int mem_cgroup_count_swap_user(swp_entry_t ent, struct page **pagep)
 	p = swap_info_get(ent);
 	if (p) {
 		count += swap_count(p->swap_map[swp_offset(ent)]);
-		spin_unlock(&swap_lock);
+		spin_unlock(&p->lock);
 	}
 
 	*pagep = page;
