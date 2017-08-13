@@ -45,6 +45,7 @@
 #include <linux/swap.h>
 #include <linux/fs.h>
 #include <linux/zcache.h>
+#include <linux/show_mem_notifier.h>
 #include <linux/vmpressure.h>
 
 #define CREATE_TRACE_POINTS
@@ -176,7 +177,7 @@ int adjust_minadj(short *min_score_adj)
 static int lmk_vmpressure_notifier(struct notifier_block *nb,
 			unsigned long action, void *data)
 {
-	int other_free, other_file;
+	int other_free = 0, other_file = 0;
 	unsigned long pressure = action;
 	int array_size = ARRAY_SIZE(lowmem_adj);
 
@@ -209,6 +210,15 @@ static int lmk_vmpressure_notifier(struct notifier_block *nb,
 				trace_almk_vmpressure(pressure, other_free,
 					other_file);
 		}
+	} else if (atomic_read(&shift_adj)) {
+		/*
+		 * shift_adj would have been set by a previous invocation
+		 * of notifier, which is not followed by a lowmem_shrink yet.
+		 * Since vmpressure has improved, reset shift_adj to avoid
+		 * false adaptive LMK trigger.
+		 */
+		trace_almk_vmpressure(pressure, other_free, other_file);
+		atomic_set(&shift_adj, 0);
 	}
 
 	return 0;
@@ -420,57 +430,55 @@ static int lowmem_shrink(struct shrinker *s, struct shrink_control *sc)
 		selected = p;
 		selected_tasksize = tasksize;
 		selected_oom_score_adj = oom_score_adj;
-#ifdef CONFIG_SAMP_HOTNESS
-		selected_hotness_adj = hotness_adj;
-#endif
-		lowmem_print(2, "select %d (%s), adj %d, size %d, to kill\n",
-			     p->pid, p->comm, oom_score_adj, tasksize);
+		lowmem_print(3, "select '%s' (%d), adj %d, size %d, to kill\n",
+			     p->comm, p->pid, oom_score_adj, tasksize);
 	}
 	if (selected) {
-#if defined(CONFIG_CMA_PAGE_COUNTING)
-#ifdef CONFIG_SAMP_HOTNESS
-		lowmem_print(1, "send sigkill to %d (%s), adj %d, size %d, "
-			"ofree %d, ofile %d(%c), is_kswapd %d - "
-			"cma_free %lu priority %d cma_i_file %lu cma_a_file %lu, hotness %d\n",
-			selected->pid, selected->comm,
-			selected_oom_score_adj, selected_tasksize,
-			other_free, other_file, flag ? '-' : '+',
-			!!current_is_kswapd(),
-			nr_cma_free, sc->priority,
-			nr_cma_inactive_file, nr_cma_active_file, selected_hotness_adj);
-#else
-		lowmem_print(1, "send sigkill to %d (%s), adj %d, size %d, "
-			"ofree %d, ofile %d(%c), is_kswapd %d - "
-			"cma_free %lu priority %d cma_i_file %lu cma_a_file %lu\n",
-			selected->pid, selected->comm,
-			selected_oom_score_adj, selected_tasksize,
-			other_free, other_file, flag ? '-' : '+',
-			!!current_is_kswapd(),
-			nr_cma_free, sc->priority,
-			nr_cma_inactive_file, nr_cma_active_file);
-#endif
+		lowmem_print(1, "Killing '%s' (%d), adj %d,\n" \
+				"   to free %ldkB on behalf of '%s' (%d) because\n" \
+				"   cache %ldkB is below limit %ldkB for oom_score_adj %hd\n" \
+				"   Free memory is %ldkB above reserved.\n" \
+				"   Free CMA is %ldkB\n" \
+				"   Total reserve is %ldkB\n" \
+				"   Total free pages is %ldkB\n" \
+				"   Total file cache is %ldkB\n" \
+				"   Total zcache is %ldkB\n" \
+				"   Slab Reclaimable is %ldkB\n" \
+				"   Slab UnReclaimable is %ldkB\n" \
+				"   Total Slab is %ldkB\n" \
+				"   GFP mask is 0x%x\n",
+			     selected->comm, selected->pid,
+			     selected_oom_score_adj,
+			     selected_tasksize * (long)(PAGE_SIZE / 1024),
+			     current->comm, current->pid,
+			     other_file * (long)(PAGE_SIZE / 1024),
+			     minfree * (long)(PAGE_SIZE / 1024),
+			     min_score_adj,
+			     other_free * (long)(PAGE_SIZE / 1024),
+			     global_page_state(NR_FREE_CMA_PAGES) *
+				(long)(PAGE_SIZE / 1024),
+			     totalreserve_pages * (long)(PAGE_SIZE / 1024),
+			     global_page_state(NR_FREE_PAGES) *
+				(long)(PAGE_SIZE / 1024),
+			     global_page_state(NR_FILE_PAGES) *
+				(long)(PAGE_SIZE / 1024),
+				(long)zcache_pages() * (long)(PAGE_SIZE / 1024),
+				global_page_state(NR_SLAB_RECLAIMABLE) *
+				(long)(PAGE_SIZE / 1024),
+			     global_page_state(NR_SLAB_UNRECLAIMABLE) *
+				(long)(PAGE_SIZE / 1024),
+			     global_page_state(NR_SLAB_RECLAIMABLE) *
+				(long)(PAGE_SIZE / 1024) +
+			     global_page_state(NR_SLAB_UNRECLAIMABLE) *
+				(long)(PAGE_SIZE / 1024),
+			     sc->gfp_mask);
 
-#else
-#ifdef CONFIG_SAMP_HOTNESS
-		lowmem_print(1, "send sigkill to %d (%s), adj %d, size %d, "
-				"free memory = %d, reclaimable memory = %d "
-				"is_kswapd %d cma_free %lu priority %d, hotness %d\n",
-				selected->pid, selected->comm,
-				selected_oom_score_adj, selected_tasksize,
-				other_free, other_file,
-				!!current_is_kswapd(),
-				nr_cma_free, sc->priority, selected_hotness_adj);
-#else
-		lowmem_print(1, "send sigkill to %d (%s), adj %d, size %d, "
-				"free memory = %d, reclaimable memory = %d "
-				"is_kswapd %d cma_free %lu priority %d\n",
-				selected->pid, selected->comm,
-				selected_oom_score_adj, selected_tasksize,
-				other_free, other_file,
-				!!current_is_kswapd(),
-				nr_cma_free, sc->priority);
-#endif
-#endif
+		if (lowmem_debug_level >= 2 && selected_oom_score_adj == 0) {
+			show_mem(SHOW_MEM_FILTER_NODES);
+			dump_tasks(NULL, NULL);
+			show_mem_call_notifiers();
+		}
+
 		lowmem_deathpending_timeout = jiffies + HZ;
 		send_sig(SIGKILL, selected, 0);
 		set_tsk_thread_flag(selected, TIF_MEMDIE);
