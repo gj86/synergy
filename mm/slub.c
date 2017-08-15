@@ -1379,7 +1379,8 @@ static struct page *new_slab(struct kmem_cache *s, gfp_t flags, int node)
 	void *p;
 
 	if (unlikely(flags & GFP_SLAB_BUG_MASK)) {
-		pr_emerg("gfp: %u\n", flags & GFP_SLAB_BUG_MASK);
+		gfp_t invalid_mask = flags & GFP_SLAB_BUG_MASK;
+		pr_emerg("Unexpected gfp: %#x (%pGg)\n", invalid_mask, &invalid_mask);
 		BUG();
 	}
 
