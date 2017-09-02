@@ -49,7 +49,7 @@ static irqreturn_t sensordata_irq_thread_fn(int iIrq, void *dev_id)
 	struct ssp_data *data = dev_id;
 	struct timespec ts;
 
-	ts = ktime_to_timespec(alarm_get_elapsed_realtime());
+	ts = ktime_to_timespec(ktime_get_real());
 	data->timestamp = ts.tv_sec * 1000000000ULL + ts.tv_nsec;
 
 	if(gpio_get_value(data->mcu_int1)) {
@@ -464,7 +464,7 @@ static int ssp_probe(struct spi_device *spi_dev)
 	}
 
 	initialize_variable(data);
-	
+
 	ssp_enable(data, true);
 	/* check boot loader binary */
 	data->fw_dl_state = check_fwbl(data);

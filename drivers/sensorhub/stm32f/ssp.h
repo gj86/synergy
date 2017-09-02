@@ -36,7 +36,6 @@
 #include <linux/timer.h>
 #include <linux/list.h>
 #include <linux/rtc.h>
-#include <linux/android_alarm.h>
 #include <linux/regulator/consumer.h>
 #include <linux/spi/spi.h>
 
@@ -304,7 +303,7 @@ enum {
 	STEP_COUNTER,
 	SENSOR_MAX,
 };
-	
+
 struct meta_data_event {
 	s32 what;
 	s32 sensor;
