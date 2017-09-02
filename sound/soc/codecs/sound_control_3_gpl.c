@@ -195,7 +195,7 @@ static bool calc_checksum(unsigned int a, unsigned int b, unsigned int c)
 	}
 }
 
-static ssize_t cam_mic_gain_show(struct kobject *kobj,
+static ssize_t gpl_cam_mic_gain_show(struct kobject *kobj,
 		struct kobj_attribute *attr, char *buf)
 {
         return sprintf(buf, "%u\n",
@@ -204,7 +204,7 @@ static ssize_t cam_mic_gain_show(struct kobject *kobj,
 
 }
 
-static ssize_t cam_mic_gain_store(struct kobject *kobj,
+static ssize_t gpl_cam_mic_gain_store(struct kobject *kobj,
 		struct kobj_attribute *attr, const char *buf, size_t count)
 {
 	unsigned int lval, chksum;
@@ -218,7 +218,7 @@ static ssize_t cam_mic_gain_store(struct kobject *kobj,
 	return count;
 }
 
-static ssize_t mic_gain_show(struct kobject *kobj,
+static ssize_t gpl_mic_gain_show(struct kobject *kobj,
 		struct kobj_attribute *attr, char *buf)
 {
 	return sprintf(buf, "%u\n",
@@ -226,7 +226,7 @@ static ssize_t mic_gain_show(struct kobject *kobj,
 			TAIKO_A_CDC_TX7_VOL_CTL_GAIN));
 }
 
-static ssize_t mic_gain_store(struct kobject *kobj,
+static ssize_t gpl_mic_gain_store(struct kobject *kobj,
 		struct kobj_attribute *attr, const char *buf, size_t count)
 {
 	unsigned int lval, chksum;
@@ -241,7 +241,7 @@ static ssize_t mic_gain_store(struct kobject *kobj,
 
 }
 
-static ssize_t speaker_gain_show(struct kobject *kobj,
+static ssize_t gpl_speaker_gain_show(struct kobject *kobj,
 		struct kobj_attribute *attr, char *buf)
 {
         return sprintf(buf, "%u %u\n",
@@ -252,7 +252,7 @@ static ssize_t speaker_gain_show(struct kobject *kobj,
 
 }
 
-static ssize_t speaker_gain_store(struct kobject *kobj,
+static ssize_t gpl_speaker_gain_store(struct kobject *kobj,
 		struct kobj_attribute *attr, const char *buf, size_t count)
 {
 	unsigned int lval, rval, chksum;
@@ -268,7 +268,7 @@ static ssize_t speaker_gain_store(struct kobject *kobj,
 	return count;
 }
 
-static ssize_t headphone_gain_show(struct kobject *kobj,
+static ssize_t gpl_headphone_gain_show(struct kobject *kobj,
 		struct kobj_attribute *attr, char *buf)
 {
 	return sprintf(buf, "%u %u\n",
@@ -278,7 +278,7 @@ static ssize_t headphone_gain_show(struct kobject *kobj,
 				TAIKO_A_CDC_RX2_VOL_CTL_B2_CTL));
 }
 
-static ssize_t headphone_gain_store(struct kobject *kobj,
+static ssize_t gpl_headphone_gain_store(struct kobject *kobj,
 		struct kobj_attribute *attr, const char *buf, size_t count)
 {
 	unsigned int lval, rval, chksum;
@@ -294,7 +294,7 @@ static ssize_t headphone_gain_store(struct kobject *kobj,
 	return count;
 }
 
-static ssize_t headphone_pa_gain_show(struct kobject *kobj,
+static ssize_t gpl_headphone_pa_gain_show(struct kobject *kobj,
 		struct kobj_attribute *attr, char *buf)
 {
 	return sprintf(buf, "%u %u\n",
@@ -302,7 +302,7 @@ static ssize_t headphone_pa_gain_show(struct kobject *kobj,
 		taiko_read(fauxsound_codec_ptr, TAIKO_A_RX_HPH_R_GAIN));
 }
 
-static ssize_t headphone_pa_gain_store(struct kobject *kobj,
+static ssize_t gpl_headphone_pa_gain_store(struct kobject *kobj,
 		struct kobj_attribute *attr, const char *buf, size_t count)
 {
 	unsigned int lval, rval, chksum;
@@ -364,13 +364,13 @@ static ssize_t sound_reg_write_store(struct kobject *kobj,
 	return count;
 }
 
-static ssize_t sound_control_hw_revision_show (struct kobject *kobj,
+static ssize_t gpl_sound_control_hw_revision_show (struct kobject *kobj,
 		struct kobj_attribute *attr, char *buf)
 {
 	return sprintf(buf, "hw_revision: %i\n", wcd9xxx_hw_revision);
 }
 
-static ssize_t sound_control_version_show(struct kobject *kobj,
+static ssize_t gpl_sound_control_version_show(struct kobject *kobj,
 		struct kobj_attribute *attr, char *buf)
 {
 	return sprintf(buf, "version: %u.%u\n",
@@ -378,7 +378,7 @@ static ssize_t sound_control_version_show(struct kobject *kobj,
 			SOUND_CONTROL_MINOR_VERSION);
 }
 
-static ssize_t sound_control_locked_store(struct kobject *kobj,
+static ssize_t gpl_sound_control_locked_store(struct kobject *kobj,
                 struct kobj_attribute *attr, const char *buf, size_t count)
 {
 	int inp;
@@ -390,13 +390,13 @@ static ssize_t sound_control_locked_store(struct kobject *kobj,
 	return count;
 }
 
-static ssize_t sound_control_locked_show(struct kobject *kobj,
+static ssize_t gpl_sound_control_locked_show(struct kobject *kobj,
 		struct kobj_attribute *attr, char *buf)
 {
         return sprintf(buf, "%d\n", snd_ctrl_locked);
 }
 
-static ssize_t sound_control_rec_locked_store(struct kobject *kobj,
+static ssize_t gpl_sound_control_rec_locked_store(struct kobject *kobj,
                 struct kobj_attribute *attr, const char *buf, size_t count)
 {
 	int inp;
@@ -408,7 +408,7 @@ static ssize_t sound_control_rec_locked_store(struct kobject *kobj,
 	return count;
 }
 
-static ssize_t sound_control_rec_locked_show(struct kobject *kobj,
+static ssize_t gpl_sound_control_rec_locked_show(struct kobject *kobj,
 		struct kobj_attribute *attr, char *buf)
 {
         return sprintf(buf, "%d\n", snd_rec_ctrl_locked);
@@ -416,73 +416,69 @@ static ssize_t sound_control_rec_locked_show(struct kobject *kobj,
 
 static struct kobj_attribute sound_reg_sel_attribute =
 	__ATTR(sound_reg_sel,
-		0222,
+		S_IWUSR,
 		NULL,
 		sound_reg_select_store);
 
 static struct kobj_attribute sound_reg_read_attribute =
 	__ATTR(sound_reg_read,
-		0444,
+		S_IRUGO,
 		sound_reg_read_show,
 		NULL);
 
 static struct kobj_attribute sound_reg_write_attribute =
 	__ATTR(sound_reg_write,
-		0222,
+		S_IWUSR,
 		NULL,
 		sound_reg_write_store);
 
 static struct kobj_attribute cam_mic_gain_attribute =
 	__ATTR(gpl_cam_mic_gain,
-		0666,
-		cam_mic_gain_show,
-		cam_mic_gain_store);
+		S_IRUGO | S_IWUSR,
+		gpl_cam_mic_gain_show,
+		gpl_cam_mic_gain_store);
 
 static struct kobj_attribute mic_gain_attribute =
 	__ATTR(gpl_mic_gain,
-		0666,
-		mic_gain_show,
-		mic_gain_store);
+		S_IRUGO | S_IWUSR,
+		gpl_mic_gain_show,
+		gpl_mic_gain_store);
 
 static struct kobj_attribute speaker_gain_attribute =
 	__ATTR(gpl_speaker_gain,
-		0666,
-		speaker_gain_show,
-		speaker_gain_store);
+		S_IRUGO | S_IWUSR,
+		gpl_speaker_gain_show,
+		gpl_speaker_gain_store);
 
 static struct kobj_attribute headphone_gain_attribute =
 	__ATTR(gpl_headphone_gain,
-		0666,
-		headphone_gain_show,
-		headphone_gain_store);
+		S_IRUGO | S_IWUSR,
+		gpl_headphone_gain_show,
+		gpl_headphone_gain_store);
 
 static struct kobj_attribute headphone_pa_gain_attribute =
 	__ATTR(gpl_headphone_pa_gain,
-		0666,
-		headphone_pa_gain_show,
-		headphone_pa_gain_store);
+		S_IRUGO | S_IWUSR,
+		gpl_headphone_pa_gain_show,
+		gpl_headphone_pa_gain_store);
 
 static struct kobj_attribute sound_control_locked_attribute =
 	__ATTR(gpl_sound_control_locked,
-		0666,
-		sound_control_locked_show,
-		sound_control_locked_store);
+		S_IRUGO | S_IWUSR,
+		gpl_sound_control_locked_show,
+		gpl_sound_control_locked_store);
 
 static struct kobj_attribute sound_control_rec_locked_attribute =
 	__ATTR(gpl_sound_control_rec_locked,
-		0666,
-		sound_control_rec_locked_show,
-		sound_control_rec_locked_store);
+		S_IRUGO | S_IWUSR,
+		gpl_sound_control_rec_locked_show,
+		gpl_sound_control_rec_locked_store);
 
 static struct kobj_attribute sound_control_version_attribute =
-	__ATTR(gpl_sound_control_version,
-		0444,
-		sound_control_version_show, NULL);
+	__ATTR_RO(gpl_sound_control_version);
 
 static struct kobj_attribute sound_hw_revision_attribute =
-	__ATTR(gpl_sound_control_hw_revision,
-		0444,
-		sound_control_hw_revision_show, NULL);
+	__ATTR_RO(gpl_sound_control_hw_revision);
 
 static struct attribute *sound_control_attrs[] =
 	{
