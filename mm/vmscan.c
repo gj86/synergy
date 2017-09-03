@@ -1329,15 +1329,7 @@ static int too_many_isolated(struct zone *zone, int file,
 			return 1;
 	}
 
-	/*
-	 * GFP_NOIO/GFP_NOFS callers are allowed to isolate more pages, so they
-	 * won't get blocked by normal direct-reclaimers, forming a circular
-	 * deadlock.
-	 */
-	if ((sc->gfp_mask & GFP_IOFS) == GFP_IOFS)
-		inactive >>= 3;
-
-	return isolated > inactive;
+	return 0;
 }
 
 static noinline_for_stack void
@@ -2389,7 +2381,7 @@ unsigned long rtcc_reclaim_pages(unsigned long nr_to_reclaim, int swappiness, un
 	rc.nr_file = nr_to_reclaim - rc.nr_anon;
 	rc.nr_swapped = 0;
 	sc.rc = &rc;
-
+	
 	if (swappiness <= 1)
 		sc.may_swap = 0;
 
