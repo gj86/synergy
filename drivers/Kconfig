@@ -148,6 +148,10 @@ source "drivers/virt/Kconfig"
 
 source "drivers/devfreq/Kconfig"
 
+source "drivers/gud/Kconfig"
+
+source "drivers/android/Kconfig"
+
 source "drivers/coresight/Kconfig"
 
 source "drivers/bif/Kconfig"
