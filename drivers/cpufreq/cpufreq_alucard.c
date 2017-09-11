@@ -36,7 +36,7 @@
 
 /* Tuning Interface */
 
-#define FREQ_RESPONSIVENESS		1136000
+#define FREQ_RESPONSIVENESS		1190400
 
 #define CPUS_DOWN_RATE			2
 #define CPUS_UP_RATE			1
@@ -44,8 +44,8 @@
 #define DEC_CPU_LOAD			70
 #define DEC_CPU_LOAD_AT_MIN_FREQ	60
 
-#define INC_CPU_LOAD			70
-#define INC_CPU_LOAD_AT_MIN_FREQ	60
+#define INC_CPU_LOAD			80
+#define INC_CPU_LOAD_AT_MIN_FREQ	70
 
 /* Pump Inc/Dec for all cores */
 #define PUMP_INC_STEP_AT_MIN_FREQ	2
@@ -559,7 +559,7 @@ static void alucard_check_cpu(struct cpufreq_alucard_cpuinfo *this_alucard_cpuin
 		unsigned int idle_time, wall_time;
 		unsigned int load_freq;
 		int freq_avg;
-		
+
 		cur_idle_time = get_cpu_idle_time(j, &cur_wall_time, 0);
 
 		wall_time = (unsigned int)
@@ -638,7 +638,7 @@ static void alucard_check_cpu(struct cpufreq_alucard_cpuinfo *this_alucard_cpuin
 	if (!policy)
 		return;
 	/* Check for frequency increase or for frequency decrease */
-	if (max_load_freq >= (inc_cpu_load * policy->cur) 
+	if (max_load_freq >= (inc_cpu_load * policy->cur)
 		 && index < this_alucard_cpuinfo->max_index) {
 		if (this_alucard_cpuinfo->up_rate % cpus_up_rate == 0) {
 			if ((index + pump_inc_step) <= this_alucard_cpuinfo->max_index)
@@ -688,7 +688,7 @@ static void alucard_check_cpu(struct cpufreq_alucard_cpuinfo *this_alucard_cpuin
 
 static void do_alucard_timer(struct work_struct *work)
 {
-	struct cpufreq_alucard_cpuinfo *this_alucard_cpuinfo = 
+	struct cpufreq_alucard_cpuinfo *this_alucard_cpuinfo =
 		container_of(work, struct cpufreq_alucard_cpuinfo, work.work);
 	int delay;
 
@@ -733,7 +733,7 @@ static int cpufreq_governor_alucard(struct cpufreq_policy *policy,
 			return -EINVAL;
 		}
 		cpufreq_frequency_table_policy_minmax_limits(policy,
-				this_alucard_cpuinfo);	
+				this_alucard_cpuinfo);
 
 		for_each_cpu(j, policy->cpus) {
 			struct cpufreq_alucard_cpuinfo *j_alucard_cpuinfo = &per_cpu(od_alucard_cpuinfo, j);
