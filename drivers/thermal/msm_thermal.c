@@ -1967,13 +1967,19 @@ static int __ref set_enabled(const char *val, const struct kernel_param *kp)
 	int ret = 0;
 
 	ret = param_set_bool(val, kp);
-	if (!enabled)
-		interrupt_mode_init();
-	else
-		pr_info("no action for enabled = %d\n",
-			enabled);
-
-	pr_info("enabled = %d\n", enabled);
+	/* Remove settings for controlling thermal driver from userspace. */
+//	if (*val == '0' || *val == 'n' || *val == 'N') {
+//		interrupt_mode_init();
+//	} else {
+		if (!polling_enabled) {
+			polling_enabled = 1;
+			schedule_delayed_work(&check_temp_work,
+				msecs_to_jiffies(msm_thermal_info.poll_ms));
+			pr_info("%s: rescheduling...\n", KBUILD_MODNAME);
+		} else
+			pr_info("%s: already running...\n", KBUILD_MODNAME);
+//	}
+	pr_info("enabled = %d\n", polling_enabled);
 
 	return ret;
 }
@@ -2163,6 +2169,12 @@ int msm_thermal_init(struct msm_thermal_data *pdata)
 	BUG_ON(!pdata);
 	memcpy(&msm_thermal_info, pdata, sizeof(struct msm_thermal_data));
 
+	/* Force compiled value */
+	msm_thermal_info.limit_temp_degC = 75;
+	msm_thermal_info.temp_hysteresis_degC = 10;
+	msm_thermal_info.core_limit_temp_degC = 80;
+	msm_thermal_info.core_temp_hysteresis_degC = 10;
+	msm_thermal_info.freq_limit = 1190400;
 	if (check_sensor_id(msm_thermal_info.sensor_id)) {
 		pr_err("Invalid sensor:%d for polling\n",
 				msm_thermal_info.sensor_id);
@@ -3284,6 +3296,7 @@ int __init msm_thermal_late_init(void)
 	msm_thermal_add_vdd_rstr_nodes();
 	msm_thermal_add_ocr_nodes();
 	msm_thermal_add_default_temp_limit_nodes();
+
 	interrupt_mode_init();
 	return 0;
 }
