@@ -1319,6 +1319,8 @@ err_invalid_core:
 static void cleanup_instance(struct msm_vidc_inst *inst)
 {
 	struct vb2_buf_entry *entry, *dummy;
+	struct list_head *ptr, *next;
+
 	if (inst) {
 		mutex_lock(&inst->pendingq.lock);
 		if (!list_empty(&inst->pendingq.list)) {
