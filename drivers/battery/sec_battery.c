@@ -4349,6 +4349,7 @@ static int sec_bat_parse_dt(struct device *dev,
 
 	ret = of_property_read_u32(np, "battery,polling_type",
 		&pdata->polling_type);
+	pdata->polling_type = SEC_BATTERY_MONITOR_WORKQUEUE;
 	if (ret)
 		pr_info("%s: polling_type is Empty\n", __func__);
 
