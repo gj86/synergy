@@ -370,20 +370,23 @@ static int tz_suspend(struct devfreq *devfreq)
 {
 	struct devfreq_msm_adreno_tz_data *priv = devfreq->data;
 
+#ifdef CONFIG_ADRENO_IDLER
 	suspended = true;
 
-#ifdef CONFIG_ADRENO_IDLER
 	__secure_tz_entry2(TZ_RESET_ID, 0, 0);
 #else
 	struct devfreq_dev_profile *profile = devfreq->profile;
 	unsigned long freq;
 
+	suspended = true;
 #endif
+
 	priv->bin.total_time = 0;
 	priv->bin.busy_time = 0;
 	priv->bus.total_time = 0;
 	priv->bus.gpu_time = 0;
 	priv->bus.ram_time = 0;
+
 #ifdef CONFIG_ADRENO_IDLER
 	return 0;
 #else
