@@ -1,0 +1,5 @@
+config HAS_MACH_MEMUTILS
+        bool "Enable Motorola MSM memcpy enhancements"
+        default y
+        help
+          Motorola MSM memcpy enhancements
