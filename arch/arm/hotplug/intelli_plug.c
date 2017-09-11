@@ -494,6 +494,9 @@ static int __ref intelli_plug_pm_notifier(struct notifier_block *notifier,
 	switch (pm_event) {
 	case PM_SUSPEND_PREPARE:
 		for_each_possible_cpu(cpu) {
+			if (cpu == 0)
+				continue;
+
 			cpu_up(cpu);
 		}
 		break;
