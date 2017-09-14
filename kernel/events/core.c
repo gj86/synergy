@@ -6102,13 +6102,12 @@ int perf_pmu_register(struct pmu *pmu, char *name, int type)
 	pmu->name = name;
 
 	if (type < 0) {
-		int err = idr_pre_get(&pmu_idr, GFP_KERNEL);
-		if (!err)
-			goto free_pdc;
+		ret = idr_alloc(&pmu_idr, pmu, 0, PERF_TYPE_MAX, GFP_KERNEL);
 
-		err = idr_get_new_above(&pmu_idr, pmu, PERF_TYPE_MAX, &type);
-		if (err) {
-			ret = err;
+		if (ret >= 0) {
+			type = ret;
+		} else if (ret == -ENOSPC) {
+			ret = -EINVAL;
 			goto free_pdc;
 		}
 	}
@@ -6635,8 +6634,8 @@ SYSCALL_DEFINE5(perf_event_open,
 	if (err)
 		return err;
 
-	if (attr.constraint_duplicate || attr.__reserved_1) 
-		return -EINVAL; 
+	if (attr.constraint_duplicate || attr.__reserved_1)
+		return -EINVAL;
 
 	if (!attr.exclude_kernel) {
 		if (perf_paranoid_kernel() && !capable(CAP_SYS_ADMIN))
