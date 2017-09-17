@@ -31,6 +31,8 @@
 #include "governor.h"
 #include "governor_bw_hwmon.h"
 
+#define DEVFREQ_BW_HWMON "bw_hwmon"
+
 struct hwmon_node {
 	unsigned int tolerance_percent;
 	unsigned int guard_band_mbps;
@@ -385,12 +387,13 @@ static int devfreq_bw_hwmon_get_freq(struct devfreq *df,
 	unsigned long mbps;
 	struct hwmon_node *node = df->data;
 
-	/* Suspend/resume sequence */
+	/* Suspend/resume sequence
 	if (!node->mon_started) {
 		*freq = node->resume_freq;
 		*node->dev_ab = node->resume_ab;
 		return 0;
 	}
+	*/
 
 	mbps = measure_bw_and_set_irq(node);
 	compute_bw(node, mbps, freq, node->dev_ab);
@@ -414,14 +417,14 @@ static struct attribute *dev_attr[] = {
 };
 
 static struct attribute_group dev_attr_group = {
-	.name = "bw_hwmon",
+	.name = DEVFREQ_BW_HWMON,
 	.attrs = dev_attr,
 };
 
 static int devfreq_bw_hwmon_ev_handler(struct devfreq *df,
 					unsigned int event, void *data)
 {
-	int ret;
+	int ret = 0;
 	unsigned int sample_ms;
 
 	switch (event) {
@@ -451,7 +454,7 @@ static int devfreq_bw_hwmon_ev_handler(struct devfreq *df,
 		sample_ms = min(MAX_MS, sample_ms);
 		devfreq_interval_update(df, &sample_ms);
 		break;
-
+/*
 	case DEVFREQ_GOV_SUSPEND:
 		ret = gov_suspend(df);
 		if (ret) {
@@ -475,13 +478,14 @@ static int devfreq_bw_hwmon_ev_handler(struct devfreq *df,
 
 		dev_dbg(df->dev.parent, "Resumed BW HW mon governor\n");
 		break;
+*/
 	}
 
-	return 0;
+	return ret;
 }
 
 static struct devfreq_governor devfreq_gov_bw_hwmon = {
-	.name = "bw_hwmon",
+	.name = DEVFREQ_BW_HWMON,
 	.get_target_freq = devfreq_bw_hwmon_get_freq,
 	.event_handler = devfreq_bw_hwmon_ev_handler,
 };
