@@ -60,7 +60,7 @@ extern void vmpressure(gfp_t gfp, struct mem_cgroup *memcg,
 		       unsigned long scanned, unsigned long reclaimed);
 extern void vmpressure_prio(gfp_t gfp, struct mem_cgroup *memcg, int prio);
 
-#ifdef CONFIG_CGROUP_MEM_RES_CTLR
+#ifdef CONFIG_MEMCG
 extern void vmpressure_init(struct vmpressure *vmpr, bool is_root);
 extern struct vmpressure *memcg_to_vmpressure(struct mem_cgroup *memcg);
 extern struct cgroup_subsys_state *vmpressure_to_css(struct vmpressure *vmpr);
@@ -77,5 +77,5 @@ static inline struct vmpressure *memcg_to_vmpressure(struct mem_cgroup *memcg)
 {
 	return NULL;
 }
-#endif /* CONFIG_CGROUP_MEM_RES_CTLR */
+#endif /* CONFIG_MEMCG */
 #endif /* __LINUX_VMPRESSURE_H */
