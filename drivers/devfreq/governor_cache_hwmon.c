@@ -31,6 +31,8 @@
 #include "governor.h"
 #include "governor_cache_hwmon.h"
 
+#define DEVFREQ_CACHE_HWMON "cache_hwmon"
+
 #define show_attr(name) \
 static ssize_t show_##name(struct device *dev,				\
 			struct device_attribute *attr, char *buf)	\
@@ -208,7 +210,7 @@ static struct attribute *dev_attr[] = {
 };
 
 static struct attribute_group dev_attr_group = {
-	.name = "cache_hwmon",
+	.name = DEVFREQ_CACHE_HWMON,
 	.attrs = dev_attr,
 };
 
@@ -232,7 +234,7 @@ static int start_monitoring(struct devfreq *df)
 
 	ret = request_threaded_irq(hw->irq, NULL, mon_intr_handler,
 			  IRQF_ONESHOT | IRQF_SHARED,
-			  "cache_hwmon", df);
+			  DEVFREQ_CACHE_HWMON, df);
 	if (ret) {
 		pr_err("Unable to register interrupt handler!\n");
 		goto req_irq_fail;
@@ -300,7 +302,7 @@ static int devfreq_cache_hwmon_ev_handler(struct devfreq *df,
 }
 
 static struct devfreq_governor devfreq_cache_hwmon = {
-	.name = "cache_hwmon",
+	.name = DEVFREQ_CACHE_HWMON,
 	.get_target_freq = devfreq_cache_hwmon_get_freq,
 	.event_handler = devfreq_cache_hwmon_ev_handler,
 };
