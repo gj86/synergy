@@ -602,7 +602,7 @@ config BALANCE_ANON_FILE_RECLAIM
 config PROCESS_RECLAIM
 	bool "Enable process reclaim"
 	depends on PROC_FS
-	default y
+	default n
 	help
 	  It allows to reclaim pages of the process by /proc/pid/reclaim.
 
