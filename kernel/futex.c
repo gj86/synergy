@@ -50,6 +50,7 @@
 #include <linux/file.h>
 #include <linux/jhash.h>
 #include <linux/init.h>
+#include <linux/bootmem.h>
 #include <linux/futex.h>
 #include <linux/mount.h>
 #include <linux/pagemap.h>
@@ -2876,7 +2877,7 @@ static int __init futex_init(void)
 #else
 	futex_hashsize = roundup_pow_of_two(256 * num_possible_cpus());
 #endif
- 
+
 	futex_queues = alloc_large_system_hash("futex", sizeof(*futex_queues),
 					       futex_hashsize, 0,
 					       futex_hashsize < 256 ? HASH_SMALL : 0,
