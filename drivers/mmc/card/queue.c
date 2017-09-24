@@ -74,6 +74,7 @@ static int mmc_queue_thread(void *d)
 
 	down(&mq->thread_sem);
 	do {
+		struct mmc_queue_req *tmp;
 		struct request *req = NULL;
 		unsigned int cmd_flags = 0;
 
