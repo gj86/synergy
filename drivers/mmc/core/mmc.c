@@ -1475,6 +1475,7 @@ static int mmc_init_card(struct mmc_host *host, u32 ocr,
 		err = mmc_send_cid(host, cid);
 	else
 		err = mmc_all_send_cid(host, cid);
+
 	if (err) {
 		pr_err("%s: %s: mmc_send_cid() fails %d\n",
 				mmc_hostname(host), __func__, err);
@@ -1539,6 +1540,7 @@ static int mmc_init_card(struct mmc_host *host, u32 ocr,
 			pr_err("%s: %s: mmc_decode_csd() fails %d\n",
 					mmc_hostname(host), __func__, err);
 			goto free_card;
+        }
 	}
 
 	/*
@@ -1570,6 +1572,7 @@ static int mmc_init_card(struct mmc_host *host, u32 ocr,
 			pr_err("%s: %s: mmc_read_ext_csd() fails %d\n",
 					mmc_hostname(host), __func__, err);
 			goto free_card;
+		}
 
 		err = mmc_decode_cid(card);
 		if (err)
@@ -1803,14 +1806,14 @@ static int mmc_init_card(struct mmc_host *host, u32 ocr,
 
 	return 0;
 
-free_card:
-	host->card = NULL;
+    free_card:
+        host->card = NULL;
 
-	if (!oldcard)
-		mmc_remove_card(card);
+        if (!oldcard)
+            mmc_remove_card(card);
 
-err:
-	return err;
+    err:
+        return err;
 }
 
 static int mmc_can_poweroff_notify(const struct mmc_card *card)
