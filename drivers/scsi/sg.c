@@ -1419,6 +1419,7 @@ static Sg_device *sg_alloc(struct gendisk *disk, struct scsi_device *scsidp)
 	sdp->sg_tablesize = queue_max_segments(q);
 	sdp->index = k;
 	kref_init(&sdp->d_ref);
+	mutex_init(&sdp->open_rel_lock);
 	error = 0;
 
 out_unlock:
