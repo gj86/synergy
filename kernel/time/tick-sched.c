@@ -535,11 +535,7 @@ void tick_nohz_irq_exit(void)
 		return;
 
 	local_irq_save(flags);
-
-	/* Cancel the timer because CPU already waken up from the C-states*/
-	menu_hrtimer_cancel();
 	__tick_nohz_idle_enter(ts);
-
 	local_irq_restore(flags);
 }
 
