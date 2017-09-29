@@ -264,6 +264,8 @@
 #include <asm/irq_regs.h>
 #include <asm/io.h>
 
+#include <linux/kthread.h>
+
 #define CREATE_TRACE_POINTS
 #include <trace/events/random.h>
 
@@ -1389,13 +1391,6 @@ urandom_read(struct file *file, char __user *buf, size_t nbytes, loff_t *ppos)
 {
 	int ret;
 
-#ifdef CONFIG_CRYPTO_FIPS
-	if (get_cc_mode_state()) {
-		return random_read(file, buf, nbytes, ppos);
-	} else
-#endif
-	{
-
 	if (unlikely(nonblocking_pool.initialized == 0))
 		printk_once(KERN_NOTICE "random: %s urandom read "
 			    "with %d bits of entropy available\n",
@@ -1407,7 +1402,6 @@ urandom_read(struct file *file, char __user *buf, size_t nbytes, loff_t *ppos)
 	trace_urandom_read(8 * nbytes, ENTROPY_BITS(&nonblocking_pool),
 			   ENTROPY_BITS(&input_pool));
 	return ret;
-	}
 }
 
 static unsigned int

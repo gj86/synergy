@@ -105,7 +105,7 @@ static inline void prandom_seed_state(struct rnd_state *state, u64 seed)
 }
 
 #ifdef CONFIG_ARCH_RANDOM
-# include <asm/archrandom.h>
+#include <asm/archrandom.h>
 #else
 static inline int arch_get_random_long(unsigned long *v)
 {
