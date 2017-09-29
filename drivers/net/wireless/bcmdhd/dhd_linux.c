@@ -7575,9 +7575,8 @@ static struct wk_trace_record *find_wklock_entry(unsigned long addr)
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 7, 0))
 	hash_for_each_possible(wklock_history, wklock_info, wklock_node, addr)
 #else
-	struct hlist_node *entry;
 	int index = hash_long(addr, ilog2(ARRAY_SIZE(wklock_history)));
-	hlist_for_each_entry(wklock_info, entry, &wklock_history[index], wklock_node)
+	hlist_for_each_entry(wklock_info, &wklock_history[index], wklock_node)
 #endif /* LINUX_VER >= KERNEL_VERSION(3, 7, 0) */
 	{
 		if (wklock_info->addr == addr) {
@@ -7636,10 +7635,9 @@ static inline void dhd_wk_lock_rec_dump(void)
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 7, 0))
 	hash_for_each(wklock_history, bkt, wklock_info, wklock_node)
 #else
-	struct hlist_node *entry;
 	int max_index = ARRAY_SIZE(wklock_history);
 	for (bkt = 0; bkt < max_index; bkt++)
-		hlist_for_each_entry(wklock_info, entry, &wklock_history[bkt], wklock_node)
+		hlist_for_each_entry(wklock_info, &wklock_history[bkt], wklock_node)
 #endif /* LINUX_VER >= KERNEL_VERSION(3, 7, 0) */
 		{
 			switch (wklock_info->lock_type) {
@@ -7696,8 +7694,7 @@ static void dhd_wk_lock_trace_deinit(struct dhd_info *dhd)
 	hash_for_each_safe(wklock_history, bkt, tmp, wklock_info, wklock_node)
 #else
 	for (bkt = 0; bkt < max_index; bkt++)
-		hlist_for_each_entry_safe(wklock_info, entry, tmp,
-			&wklock_history[bkt], wklock_node)
+		hlist_for_each_entry_safe(wklock_info, entry, &wklock_history[bkt], wklock_node)
 #endif /* LINUX_VER >= KERNEL_VERSION(3, 7, 0)) */
 		{
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 7, 0))

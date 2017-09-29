@@ -316,14 +316,17 @@ static void context_list_ctor(struct smq_context_list *me)
 
 static void context_free(struct smq_invoke_ctx *ctx, bool lock);
 
-static void context_list_dtor(struct fastrpc_apps *me, struct smq_context_list *clst) {
+static void context_list_dtor(struct fastrpc_apps *me,
+	struct smq_context_list *clst)
+{
 	struct smq_invoke_ctx *ictx = 0;
-	struct hlist_node *pos, *n;
+	struct hlist_node *n;
+
 	spin_lock(&clst->hlock);
-	hlist_for_each_entry_safe(ictx, pos, n, &clst->interrupted, hn) {
+	hlist_for_each_entry_safe(ictx, n, &clst->interrupted, hn) {
 		context_free(ictx, 0);
 	}
-	hlist_for_each_entry_safe(ictx, pos, n, &clst->pending, hn) {
+	hlist_for_each_entry_safe(ictx, n, &clst->pending, hn) {
 		context_free(ictx, 0);
 	}
 	spin_unlock(&clst->hlock);
@@ -495,28 +498,6 @@ static void context_notify_all_users(struct smq_context_list *me, int cid)
 	}
 	spin_unlock(&me->hlock);
 
-}
-
-static void context_list_ctor(struct smq_context_list *me)
-{
-	INIT_HLIST_HEAD(&me->interrupted);
-	INIT_HLIST_HEAD(&me->pending);
-	spin_lock_init(&me->hlock);
-}
-
-static void context_list_dtor(struct fastrpc_apps *me,
-				struct smq_context_list *clst)
-{
-	struct smq_invoke_ctx *ictx = 0;
-	struct hlist_node *n;
-	spin_lock(&clst->hlock);
-	hlist_for_each_entry_safe(ictx, n, &clst->interrupted, hn) {
-		context_free(ictx, 0);
-	}
-	hlist_for_each_entry_safe(ictx, n, &clst->pending, hn) {
-		context_free(ictx, 0);
-	}
-	spin_unlock(&clst->hlock);
 }
 
 static int get_page_list(uint32_t kernel, uint32_t sc, remote_arg_t *pra,
