@@ -753,7 +753,7 @@ static long exfat_generic_ioctl(struct file *filp,
 	switch (cmd) {
 	case EXFAT_IOCTL_GET_VOLUME_ID:
 		return exfat_ioctl_volume_id(inode);
-#if EXFAT_CONFIG_KERNEL_DEBUG
+#ifdef CONFIG_EXFAT_KERNEL_DEBUG
 	case EXFAT_IOC_GET_DEBUGFLAGS: {
 		struct super_block *sb = inode->i_sb;
 		struct exfat_sb_info *sbi = EXFAT_SB(sb);
@@ -1825,43 +1825,6 @@ static ssize_t exfat_direct_IO(int rw, struct kiocb *iocb,
 	return ret;
 
 }
-#else
-static ssize_t exfat_direct_IO(int rw, struct kiocb *iocb,
-		struct iov_iter *iter,
-		loff_t offset)
-{
-	struct file *file = iocb->ki_filp;
-	struct address_space *mapping = file->f_mapping;
-	struct inode *inode = mapping->host;
-	size_t count = iov_iter_count(iter);
-	ssize_t ret;
-
-	if (rw == WRITE) {
-		/*
-		 * FIXME: blockdev_direct_IO() doesn't use ->write_begin(),
-		 * so we need to update the ->mmu_private to block boundary.
-		 *
-		 * But we must fill the remaining area or hole by nul for
-		 * updating ->mmu_private.
-		 *
-		 * Return 0, and fallback to normal buffered write.
-		 */
-		loff_t size = offset + count;
-		if (EXFAT_I(inode)->mmu_private < size)
-			return 0;
-	}
-
-	/*
-	 * FAT need to use the DIO_LOCKING for avoiding the race
-	 * condition of fat_get_block() and ->truncate().
-	 */
-	ret = blockdev_direct_IO(rw, iocb, inode, iter, offset, exfat_get_block);
-	if (ret < 0 && (rw & WRITE))
-		exfat_write_failed(mapping, offset + count);
-
-	return ret;
-}
-#endif
 
 static sector_t _exfat_bmap(struct address_space *mapping, sector_t block)
 {
