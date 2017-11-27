@@ -47,3 +47,10 @@ config ZEN_DECISION
 	  delegated to somewhere else in the kernel (Such as in CPU-BOOST)
 
 	  Enable this if you'd like the ability to disable MPDecision.
+
+config LAZYPLUG
+	bool "Conservative hotplugging for generic devices"
+	default n
+	help
+	  This enables the conservative hotplugging, lazyplug by arter97
+	  based on intelli_plug. Refer to the comments for more info.
