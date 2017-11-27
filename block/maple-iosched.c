@@ -17,7 +17,9 @@
 #include <linux/module.h>
 #include <linux/init.h>
 #include <linux/slab.h>
-#include <linux/display_state.h>
+#ifdef CONFIG_STATE_NOTIFIER
+#include <linux/state_notifier.h>
+#endif
 
 #define MAPLE_IOSCHED_PATCHLEVEL	(8)
 
@@ -31,6 +33,11 @@ static const int async_write_expire = 500;	/* ditto for write async, these limit
 static const int fifo_batch = 16;		/* # of sequential requests treated as one by the above parameters. */
 static const int writes_starved = 3;		/* max times reads can starve a write */
 static const int sleep_latency_multiple = 5;	/* multple for expire time when device is asleep */
+
+#ifdef CONFIG_STATE_NOTIFIER
+static struct notifier_block notif;
+bool display_on = false;
+#endif
 
 /* Elevator data */
 struct maple_data {
@@ -52,6 +59,23 @@ static inline struct maple_data *
 maple_get_data(struct request_queue *q) {
 	return q->elevator->elevator_data;
 }
+
+#ifdef CONFIG_STATE_NOTIFIER
+static int state_notifier_callback(struct notifier_block *this,
+				unsigned long event, void *data)
+{
+	switch (event) {
+		case STATE_NOTIFIER_ACTIVE:
+			display_on = true;
+			break;
+		default:
+			display_on = false;
+			break;
+	}
+
+	return NOTIFY_OK;
+}
+#endif
 
 static void
 maple_merged_requests(struct request_queue *q, struct request *rq,
@@ -78,7 +102,6 @@ maple_add_request(struct request_queue *q, struct request *rq)
 	struct maple_data *mdata = maple_get_data(q);
 	const int sync = rq_is_sync(rq);
 	const int dir = rq_data_dir(rq);
-	const bool display_on = is_display_on();
 
 	/*
 	 * Add request to the proper fifo list and set its
@@ -206,7 +229,6 @@ maple_dispatch_requests(struct request_queue *q, int force)
 	struct maple_data *mdata = maple_get_data(q);
 	struct request *rq = NULL;
 	int data_dir = READ;
-	const bool display_on = is_display_on();
 
 	/*
 	 * Retrieve any expired request after a batch of
@@ -407,6 +429,12 @@ static int __init maple_init(void)
 {
 	/* Register elevator */
 	elv_register(&iosched_maple);
+
+#ifdef CONFIG_STATE_NOTIFIER
+	notif.notifier_call = state_notifier_callback;
+	if (state_register_client(&notif))
+		pr_err("Cannot register State notifier callback for cpuboost.\n");
+#endif
 
 	return 0;
 }
