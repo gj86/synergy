@@ -143,8 +143,8 @@ static void do_input_boost_rem(struct work_struct *work)
 	for_each_possible_cpu(cpu) {
 		if (limit.user_boost_freq_lock[cpu] > 0) {
 			dprintk("Removing input boost for CPU%u\n", cpu);
-			set_cpu_boost_min_lock(cpu,
-					limit.user_min_freq_lock[cpu]);
+			msm_cpufreq_set_freq_limits(cpu,
+					limit.user_min_freq_lock[cpu], 0);
 			limit.user_boost_freq_lock[cpu] = 0;
 		}
 	}
@@ -180,11 +180,11 @@ static void do_input_boost(struct work_struct *work)
 		unsigned int cur = 0;
 
 		/* Save user current min & boost lock */
-		limit.user_min_freq_lock[cpu] = get_cpu_min_lock(cpu);
+		limit.user_min_freq_lock[cpu] = 0;
 		limit.user_boost_freq_lock[cpu] = input_boost_freq;
 
 		dprintk("Input boost for CPU%u\n", cpu);
-		set_cpu_boost_min_lock(cpu, limit.user_boost_freq_lock[cpu]);
+		msm_cpufreq_set_freq_limits(cpu, limit.user_boost_freq_lock[cpu], 0);
 
 		if (cpu_online(cpu)) {
 			cur = cpufreq_quick_get(cpu);
