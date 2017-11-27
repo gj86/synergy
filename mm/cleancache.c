@@ -19,6 +19,16 @@
 #include <linux/cleancache.h>
 
 /*
+ * This global enablement flag may be read thousands of times per second
+ * by cleancache_get/put/invalidate even on systems where cleancache_ops
+ * is not claimed (e.g. cleancache is config'ed on but remains
+ * disabled), so is preferred to the slower alternative: a function
+ * call that checks a non-global.
+ */
+int cleancache_enabled __read_mostly;
+EXPORT_SYMBOL(cleancache_enabled);
+
+/*
  * cleancache_ops is set by cleancache_register_ops to contain the pointers
  * to the cleancache "backend" implementation functions.
  */
@@ -44,6 +54,7 @@ static void cleancache_register_ops_sb(struct super_block *sb, void *unused)
 		__cleancache_init_shared_fs(sb);
 		break;
 	}
+	cleancache_enabled = 1;
 }
 
 /*
@@ -209,7 +220,7 @@ void __cleancache_put_page(struct page *page)
 	pool_id = page->mapping->host->i_sb->cleancache_poolid;
 	if (pool_id >= 0 &&
 	      cleancache_get_key(page->mapping->host, &key) >= 0) {
-		(*cleancache_ops.put_page)(pool_id, key, page->index, page);
+		cleancache_ops->put_page(pool_id, key, page->index, page);
 		cleancache_puts++;
 	}
 }
@@ -232,7 +243,7 @@ void __cleancache_invalidate_page(struct address_space *mapping,
 	if (pool_id >= 0) {
 		VM_BUG_ON(!PageLocked(page));
 		if (cleancache_get_key(mapping->host, &key) >= 0) {
-			(*cleancache_ops.invalidate_page)(pool_id,
+			cleancache_ops->invalidate_page(pool_id,
 							  key, page->index);
 			cleancache_invalidates++;
 		}
@@ -254,7 +265,7 @@ void __cleancache_invalidate_inode(struct address_space *mapping)
 		return;
 
 	if (pool_id >= 0 && cleancache_get_key(mapping->host, &key) >= 0)
-		(*cleancache_ops.invalidate_inode)(pool_id, key);
+		cleancache_ops->invalidate_inode(pool_id, key);
 }
 EXPORT_SYMBOL(__cleancache_invalidate_inode);
 

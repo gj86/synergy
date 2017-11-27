@@ -6590,6 +6590,7 @@ static const struct trace_print_flags pageflag_names[] = {
 #ifdef CONFIG_SCFS_LOWER_PAGECACHE_INVALIDATION
 	{1UL << PG_scfslower, "scfslower"},
 	{1UL << PG_nocache,"nocache"},
+#endif
 #ifdef CONFIG_KSM_CHECK_PAGE
 	{1UL << PG_ksm_scan0,           "PG_ksm_scan0"  },
 #endif

@@ -20,6 +20,7 @@
 #include <linux/page_cgroup.h>
 
 #include <asm/pgtable.h>
+#include <linux/export.h>
 
 /*
  * swapper_space is a fiction, retained to simplify the path through

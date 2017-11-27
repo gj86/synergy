@@ -23,6 +23,7 @@
 #include <linux/aio.h>
 #include <linux/blkdev.h>
 #include <asm/pgtable.h>
+#include <linux/ratelimit.h>
 
 static struct bio *get_swap_bio(gfp_t gfp_flags,
 				struct page *page, bio_end_io_t end_io)
