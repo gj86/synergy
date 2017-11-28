@@ -257,6 +257,7 @@ static int scfs_fasync(int fd, struct file *file, int flag)
 
 static const struct vm_operations_struct scfs_file_vm_ops = {
 	.fault		= filemap_fault,
+	.remap_pages = generic_file_remap_pages,
 };
 
 /*
@@ -290,9 +291,6 @@ static int scfs_mmap(struct file *file, struct vm_area_struct *vma)
 
 	file_accessed(file);
 	vma->vm_ops = &scfs_file_vm_ops;
-#if LINUX_VERSION_CODE < KERNEL_VERSION(3,10,0)
-	vma->vm_flags |= VM_CAN_NONLINEAR;
-#endif
  	SCFS_PRINT("VM flags: %lx "
  		"EXEC %lx IO %lx "
 		"SEQ %lx RAND %lx "

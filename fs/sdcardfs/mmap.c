@@ -87,4 +87,5 @@ const struct vm_operations_struct sdcardfs_vm_ops = {
 	.page_mkwrite	= sdcardfs_page_mkwrite,
 	.open		= sdcardfs_vm_open,
 	.close		= sdcardfs_vm_close,
+	.remap_pages = generic_file_remap_pages,
 };
