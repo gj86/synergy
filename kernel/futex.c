@@ -50,6 +50,7 @@
 #include <linux/file.h>
 #include <linux/jhash.h>
 #include <linux/init.h>
+#include <linux/bootmem.h>
 #include <linux/futex.h>
 #include <linux/mount.h>
 #include <linux/pagemap.h>
