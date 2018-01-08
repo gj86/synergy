@@ -421,6 +421,7 @@ static void store_current_samples(int value)
 	if (current_samples[0] <= 0) {
 		int i;
 
+		//Skip index 0, it will reassigned anyway.
 		for (i = 1; i < AVER_SAMPLE_CNT; i++)
 			current_samples[i] = value;
 	}
@@ -970,11 +971,21 @@ bool sec_hal_fg_get_property(struct i2c_client *client,
 		break;
 		/* Current (mA) */
 	case POWER_SUPPLY_PROP_CURRENT_NOW:
-		val->intval = max17048_get_current(client);
+		psy_do_property("battery", get,
+			POWER_SUPPLY_PROP_STATUS, value_bat);
+		if(value_bat.intval == POWER_SUPPLY_STATUS_DISCHARGING)
+			val->intval = -max17048_get_current(client);
+		else
+			val->intval = max17048_get_current(client);
 		break;
 		/* Average Current (mA) */
 	case POWER_SUPPLY_PROP_CURRENT_AVG:
-		val->intval = max17048_get_current_average(client);
+		psy_do_property("battery", get,
+			POWER_SUPPLY_PROP_STATUS, value_bat);
+		if(value_bat.intval == POWER_SUPPLY_STATUS_DISCHARGING)
+			val->intval = -max17048_get_current_average(client);
+		else
+			val->intval = max17048_get_current_average(client);
 		break;
 		/* SOC (%) */
 	case POWER_SUPPLY_PROP_CAPACITY:
