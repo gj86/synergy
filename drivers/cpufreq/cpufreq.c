@@ -774,19 +774,11 @@ static ssize_t show_bios_limit(struct cpufreq_policy *policy, char *buf)
 	return sprintf(buf, "%u\n", policy->cpuinfo.max_freq);
 }
 
-extern ssize_t vc_get_vdd(char *buf);
-extern void vc_set_vdd(const char *buf);
-
-static ssize_t show_UV_mV_table(struct cpufreq_policy *policy, char *buf)
-{
-       return vc_get_vdd(buf);
-}
-static ssize_t store_UV_mV_table
-(struct cpufreq_policy *policy, const char *buf, size_t count)
-{
-       vc_set_vdd(buf);
-       return count;
-}
+#ifdef CONFIG_CPU_VOLTAGE_TABLE
+extern ssize_t show_UV_mV_table(struct cpufreq_policy *policy, char *buf);
+extern ssize_t store_UV_mV_table(struct cpufreq_policy *policy,
+				 const char *buf, size_t count);
+#endif
 
 cpufreq_freq_attr_ro_perm(cpuinfo_cur_freq, 0400);
 cpufreq_freq_attr_ro(cpuinfo_min_freq);
@@ -801,25 +793,14 @@ cpufreq_freq_attr_ro(affected_cpus);
 cpufreq_freq_attr_ro(cpu_utilization);
 #ifdef CONFIG_SEC_PM
 cpufreq_freq_attr_ro(cpu_load);
-/* Disable scaling_min_freq store */
-#ifdef CONFIG_ARCH_MSM8226
-cpufreq_freq_attr_ro(scaling_min_freq);
-#else
+#endif
+#ifdef CONFIG_CPU_VOLTAGE_TABLE
+cpufreq_freq_attr_rw(UV_mV_table);
+#endif
 cpufreq_freq_attr_rw(scaling_min_freq);
-#endif
-#else
-#ifdef CONFIG_ARCH_MSM8226
-cpufreq_freq_attr_ro(scaling_min_freq);
-#else
-cpufreq_freq_attr_rw(scaling_min_freq);
-#endif
-#endif
-
-
 cpufreq_freq_attr_rw(scaling_max_freq);
 cpufreq_freq_attr_rw(scaling_governor);
 cpufreq_freq_attr_rw(scaling_setspeed);
-cpufreq_freq_attr_rw(UV_mV_table);
 
 static struct attribute *default_attrs[] = {
 	&cpuinfo_min_freq.attr,
@@ -837,7 +818,9 @@ static struct attribute *default_attrs[] = {
 	&scaling_driver.attr,
 	&scaling_available_governors.attr,
 	&scaling_setspeed.attr,
+#ifdef CONFIG_CPU_VOLTAGE_TABLE
 	&UV_mV_table.attr,
+#endif
 	NULL
 };
 
@@ -2495,13 +2478,12 @@ static int __init cpufreq_core_init(void)
 
 	cpufreq_global_kobject = kobject_create_and_add("cpufreq", &cpu_subsys.dev_root->kobj);
 	BUG_ON(!cpufreq_global_kobject);
+	register_syscore_ops(&cpufreq_syscore_ops);
 
 	/* create cpufreq kset */
 	cpufreq_kset = kset_create_and_add("kset", NULL, cpufreq_global_kobject);
 	BUG_ON(!cpufreq_kset);
 	cpufreq_global_kobject->kset = cpufreq_kset;
-
-	register_syscore_ops(&cpufreq_syscore_ops);
 
 	return 0;
 }
