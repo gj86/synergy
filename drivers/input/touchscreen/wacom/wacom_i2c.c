@@ -232,9 +232,12 @@ static void pen_insert_work(struct work_struct *work)
 	dev_info(&wac_i2c->client->dev, "%s: pen %s\n",
 		__func__, wac_i2c->pen_insert ? "instert" : "remove");
 
-	input_report_switch(wac_i2c->input_dev,
-		SW_PEN_INSERT, !wac_i2c->pen_insert);
-	input_sync(wac_i2c->input_dev);
+	if (!wac_i2c->pen_insert) {
+		input_report_key(wac_i2c->input_dev, KEY_WAKEUP, 1);
+		input_sync(wac_i2c->input_dev);
+		input_report_key(wac_i2c->input_dev, KEY_WAKEUP, 0);
+		input_sync(wac_i2c->input_dev);
+	}
 
 #ifdef BATTERY_SAVING_MODE
 	if (wac_i2c->pen_insert) {
@@ -291,8 +294,6 @@ static void wacom_i2c_set_input_values(struct i2c_client *client,
 	input_dev->dev.parent = &client->dev;
 	input_dev->evbit[0] |= BIT_MASK(EV_KEY) | BIT_MASK(EV_ABS);
 
-	input_dev->evbit[0] |= BIT_MASK(EV_SW);
-	input_set_capability(input_dev, EV_SW, SW_PEN_INSERT);
 #ifdef WACOM_PEN_DETECT
 	input_dev->open = wacom_i2c_input_open;
 	input_dev->close = wacom_i2c_input_close;
@@ -307,6 +308,12 @@ static void wacom_i2c_set_input_values(struct i2c_client *client,
 	__set_bit(BTN_STYLUS, input_dev->keybit);
 	__set_bit(KEY_UNKNOWN, input_dev->keybit);
 	__set_bit(KEY_PEN_PDCT, input_dev->keybit);
+	__set_bit(KEY_WAKEUP, input_dev->keybit);
+	__set_bit(KEY_PEN_UTD, input_dev->keybit);
+	__set_bit(KEY_PEN_DTU, input_dev->keybit);
+	__set_bit(KEY_PEN_RTL, input_dev->keybit);
+	__set_bit(KEY_PEN_LTR, input_dev->keybit);
+	__set_bit(KEY_PEN_LP, input_dev->keybit);
 #ifdef WACOM_USE_GAIN
 	__set_bit(ABS_DISTANCE, input_dev->absbit);
 #endif
@@ -571,6 +578,35 @@ static ssize_t epen_hand_store(struct device *dev,
 	return count;
 }
 #endif
+
+static ssize_t epen_gestures_show(struct device *dev,
+				  struct device_attribute *attr, char *buf)
+{
+	struct wacom_i2c *wac_i2c = dev_get_drvdata(dev);
+
+	dev_info(&wac_i2c->client->dev,
+			"%s: enabled_gestures=%d\n", __func__,
+			wac_i2c->enabled_gestures);
+
+	return sprintf(buf, "%d\n", wac_i2c->enabled_gestures);
+}
+
+static ssize_t epen_gestures_store(struct device *dev,
+				   struct device_attribute *attr, const char *buf,
+				   size_t count)
+{
+	struct wacom_i2c *wac_i2c = dev_get_drvdata(dev);
+	int val;
+
+	sscanf(buf, "%d", &val);
+
+	wac_i2c->enabled_gestures = val;
+
+	dev_info(&wac_i2c->client->dev,
+			"%s: enabled_gestures=%d\n", __func__, val);
+
+	return count;
+}
 
 static bool check_update_condition(struct wacom_i2c *wac_i2c, const char buf)
 {
@@ -1077,6 +1113,9 @@ static DEVICE_ATTR(boost_level,
 		   S_IWUSR | S_IWGRP, NULL, boost_level_store);
 #endif
 
+static DEVICE_ATTR(epen_gestures, S_IWUSR | S_IWGRP | S_IRUGO,
+		   epen_gestures_show, epen_gestures_store);
+
 static struct attribute *epen_attributes[] = {
 #ifdef USE_WACOM_BLOCK_KEYEVENT
 	&dev_attr_epen_delay_time.attr,
@@ -1109,6 +1148,7 @@ static struct attribute *epen_attributes[] = {
 #ifdef WACOM_BOOSTER
 	&dev_attr_boost_level.attr,
 #endif
+	&dev_attr_epen_gestures.attr,
 	NULL,
 };
 

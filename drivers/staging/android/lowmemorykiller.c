@@ -549,21 +549,21 @@ static int lowmem_shrink(struct shrinker *s, struct shrink_control *sc)
 				"   Slab UnReclaimable is %ldkB\n" \
 				"   Total Slab is %ldkB\n" \
 				"   GFP mask is 0x%x\n",
-			     selected->comm, selected->pid,
-			     selected_oom_score_adj,
-			     selected_tasksize * (long)(PAGE_SIZE / 1024),
-			     current->comm, current->pid,
-			     other_file * (long)(PAGE_SIZE / 1024),
-			     minfree * (long)(PAGE_SIZE / 1024),
-			     min_score_adj,
-			     other_free * (long)(PAGE_SIZE / 1024),
-			     global_page_state(NR_FREE_CMA_PAGES) *
-				(long)(PAGE_SIZE / 1024),
-			     totalreserve_pages * (long)(PAGE_SIZE / 1024),
-			     global_page_state(NR_FREE_PAGES) *
-				(long)(PAGE_SIZE / 1024),
-			     global_page_state(NR_FILE_PAGES) *
-				(long)(PAGE_SIZE / 1024),
+				selected->comm, selected->pid,
+				selected_oom_score_adj,
+				selected_tasksize * (long)(PAGE_SIZE / 1024),
+				current->comm, current->pid,
+				other_file * (long)(PAGE_SIZE / 1024),
+				minfree * (long)(PAGE_SIZE / 1024),
+				min_score_adj,
+				other_free * (long)(PAGE_SIZE / 1024),
+				global_page_state(NR_FREE_CMA_PAGES) *
+				   (long)(PAGE_SIZE / 1024),
+				totalreserve_pages * (long)(PAGE_SIZE / 1024),
+				global_page_state(NR_FREE_PAGES) *
+				   (long)(PAGE_SIZE / 1024),
+				global_page_state(NR_FILE_PAGES) *
+				   (long)(PAGE_SIZE / 1024),
 				(long)zcache_pages() * (long)(PAGE_SIZE / 1024),
 				global_page_state(NR_SLAB_RECLAIMABLE) *
 				(long)(PAGE_SIZE / 1024),
