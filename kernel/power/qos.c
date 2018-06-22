@@ -377,8 +377,9 @@ int pm_qos_request_for_cpumask(int pm_qos_class, struct cpumask *mask)
 	int cpu;
 	struct pm_qos_constraints *c = NULL;
 	int val;
+	unsigned long flags;
 
-	mutex_lock(&pm_qos_lock);
+	spin_lock_irqsave(&pm_qos_lock, flags);
 	c = pm_qos_array[pm_qos_class]->constraints;
 	val = c->default_value;
 
@@ -397,7 +398,7 @@ int pm_qos_request_for_cpumask(int pm_qos_class, struct cpumask *mask)
 			break;
 		}
 	}
-	mutex_unlock(&pm_qos_lock);
+	spin_unlock_irqrestore(&pm_qos_lock, flags);
 
 	return val;
 }
@@ -437,10 +438,11 @@ static void pm_qos_irq_release(struct kref *ref)
 					struct pm_qos_request, irq_notify);
 	struct pm_qos_constraints *c =
 				pm_qos_array[req->pm_qos_class]->constraints;
+	unsigned long flags;
 
-	mutex_lock(&pm_qos_lock);
+	spin_lock_irqsave(&pm_qos_lock, flags);
 	cpumask_setall(&req->cpus_affine);
-	mutex_unlock(&pm_qos_lock);
+	spin_unlock_irqrestore(&pm_qos_lock, flags);
 
 	pm_qos_update_target(c, req, PM_QOS_UPDATE_REQ, c->default_value);
 }
@@ -452,10 +454,11 @@ static void pm_qos_irq_notify(struct irq_affinity_notify *notify,
 					struct pm_qos_request, irq_notify);
 	struct pm_qos_constraints *c =
 				pm_qos_array[req->pm_qos_class]->constraints;
+	unsigned long flags;
 
-	mutex_lock(&pm_qos_lock);
+	spin_lock_irqsave(&pm_qos_lock, flags);
 	cpumask_copy(&req->cpus_affine, mask);
-	mutex_unlock(&pm_qos_lock);
+	spin_unlock_irqrestore(&pm_qos_lock, flags);
 
 	pm_qos_update_target(c, req, PM_QOS_UPDATE_REQ, req->node.prio);
 }

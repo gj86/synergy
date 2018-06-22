@@ -1324,7 +1324,7 @@ err_invalid_core:
 
 static void cleanup_instance(struct msm_vidc_inst *inst)
 {
-	struct vb2_buf_entry *entry, *dummy;
+	struct vb2_buf_entry *entry;
 	struct list_head *ptr, *next;
 
 	if (inst) {
