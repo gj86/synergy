@@ -3242,7 +3242,6 @@ static int perf_event_read_group(struct perf_event *event,
 				   u64 read_format, char __user *buf)
 {
 	struct perf_event *leader = event->group_leader, *sub;
-	struct perf_event_context *ctx = event->ctx;
 	int n = 0, size = 0, ret;
 	u64 count, enabled, running;
 	u64 values[5];
@@ -3401,7 +3400,6 @@ static void perf_event_for_each_child(struct perf_event *event,
 static void perf_event_for_each(struct perf_event *event,
 				  void (*func)(struct perf_event *))
 {
-	struct perf_event_context *ctx = event->ctx;
 	struct perf_event *sibling;
 
 	lockdep_assert_held(&ctx->mutex);

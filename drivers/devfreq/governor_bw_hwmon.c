@@ -332,6 +332,7 @@ static void gov_stop(struct devfreq *df)
 	node->dev_ab = NULL;
 }
 
+/*
 static int gov_suspend(struct devfreq *df)
 {
 	struct hwmon_node *node = df->data;
@@ -379,6 +380,7 @@ static int gov_resume(struct devfreq *df)
 
 	return start_monitor(df, false);
 }
+*/
 
 static int devfreq_bw_hwmon_get_freq(struct devfreq *df,
 					unsigned long *freq,

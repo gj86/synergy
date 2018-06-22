@@ -526,6 +526,7 @@ static void max77803_set_charge_current(struct max77803_charger_data *charger,
 			__func__, reg_data, cur);
 }
 
+/*
 static int max77803_get_charge_current(struct max77803_charger_data *charger)
 {
 	u8 reg_data;
@@ -541,6 +542,7 @@ static int max77803_get_charge_current(struct max77803_charger_data *charger)
 	pr_debug("%s: get charge current: %dmA\n", __func__, get_current);
 	return get_current;
 }
+*/
 
 /* in soft regulation, current recovery operation */
 static void max77803_recovery_work(struct work_struct *work)
@@ -1024,8 +1026,7 @@ static int sec_chg_set_property(struct power_supply *psy,
 					set_charging_current < usb_charging_current)
 				set_charging_current = usb_charging_current;
 
-				set_charging_current_max =
-						charger->charging_current_max;
+			set_charging_current_max = charger->charging_current_max;
 #ifdef WPC_CHECK_CVPRM_FEATURE
 			if (val->intval == POWER_SUPPLY_TYPE_WIRELESS)
 				max77803_check_cvprm(charger, 0x1C);

@@ -346,7 +346,7 @@ unsigned long shrink_slab(struct shrink_control *shrinkctl,
 
 	list_for_each_entry(shrinker, &shrinker_list, list) {
 		unsigned long long delta;
-		long total_scan, pages_got;
+		long total_scan;
 		long max_pass;
 		long nr;
 		long new_nr;
