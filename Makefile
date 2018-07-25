@@ -365,7 +365,7 @@ CFLAGS_GCOV	= -fprofile-arcs -ftest-coverage
 
 # An -O2 extended optimization set for ARM devices,
 # more precisely the Cortex-A15 with NEON support.
-ifdef CONFIG_FAST_LANE
+ifeq ($(CONFIG_FAST_LANE),y)
 ifeq ($(CONFIG_FAST_LANE_ARM),y)
 FAST_LANE_ARM_OPT := -mtune=cortex-a15 \
 	-mcpu=cortex-a15 \

@@ -428,9 +428,8 @@ config FRONTSWAP
 
 	  If unsure, say Y to enable frontswap.
 
-config ZSMALLOC_NEW
+config ZSMALLOC
 	tristate "Memory allocator for compressed pages"
-	depends on !ZSMALLOC
 	default n
 	help
 	  zsmalloc is a slab-based memory allocator designed to store
@@ -442,7 +441,7 @@ config ZSMALLOC_NEW
 
 config PGTABLE_MAPPING
 	bool "Use page table mapping to access object in zsmalloc"
-	depends on ZSMALLOC_NEW
+	depends on ZSMALLOC
 	help
 	  By default, zsmalloc uses a copy-based object mapping method to
 	  access allocations that span two pages. However, if a particular
@@ -458,7 +457,7 @@ config ZSWAP
 	depends on FRONTSWAP && CRYPTO
 	select CRYPTO_LZO
 	select CRYPTO_LZ4
-	select ZSMALLOC_NEW
+	select ZSMALLOC
 	default n
 	help
 	  Zswap is a backend for the frontswap mechanism in the VMM.
@@ -567,18 +566,6 @@ config ZPOOL
 	help
 	  Compressed memory storage API.  This allows using either zbud or
 	  zsmalloc.
-
-config ZSMALLOC
-	tristate "Memory allocator for compressed pages"
-	depends on MMU
-	default n
-	help
-	  zsmalloc is a slab-based memory allocator designed to store
-	  compressed RAM pages.  zsmalloc uses virtual memory mapping
-	  in order to reduce fragmentation.  However, this results in a
-	  non-standard allocator interface where a handle, not a pointer, is
-	  returned by an alloc().  This handle must be mapped in order to
-	  access the allocated space.
 
 config KSWAPD_CPU_AFFINITY_MASK
 	string "kswapd cpu affinity mask"
