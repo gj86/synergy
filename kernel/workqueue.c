@@ -41,14 +41,11 @@
 #include <linux/debug_locks.h>
 #include <linux/lockdep.h>
 #include <linux/idr.h>
-#include <linux/hashtable.h>
 #include <linux/bug.h>
 #include <linux/moduleparam.h>
+#include <linux/hashtable.h>
 
 #include "workqueue_sched.h"
-#ifdef CONFIG_SEC_DEBUG
-#include <mach/sec_debug.h>
-#endif
 
 enum {
 	/* global_cwq flags */
@@ -588,7 +585,10 @@ static struct cpu_workqueue_struct *get_work_cwq(struct work_struct *work)
 	if (data & WORK_STRUCT_CWQ)
 		return (void *)(data & WORK_STRUCT_WQ_DATA_MASK);
 	else
+	{
+		WARN_ON_ONCE(1);
 		return NULL;
+	}
 }
 
 static struct global_cwq *get_work_gcwq(struct work_struct *work)
@@ -872,10 +872,10 @@ static struct worker *find_worker_executing_work(
 	struct worker *worker;
 	struct hlist_node *tmp;
 
-	hash_for_each_possible(gcwq->busy_hash, worker, tmp, hentry,
-						  (unsigned long)work)
+	hash_for_each_possible(gcwq->busy_hash, worker, tmp, hentry, (unsigned long)work)
 		if (worker->current_work == work)
 			return worker;
+
 	return NULL;
 }
 
@@ -1077,7 +1077,8 @@ static void delayed_work_timer_fn(unsigned long __data)
 	struct delayed_work *dwork = (struct delayed_work *)__data;
 	struct cpu_workqueue_struct *cwq = get_work_cwq(&dwork->work);
 
-	__queue_work(smp_processor_id(), cwq->wq, &dwork->work);
+	if (cwq != NULL)
+		__queue_work(smp_processor_id(), cwq->wq, &dwork->work);
 }
 
 /**
@@ -1429,19 +1430,12 @@ static void destroy_worker(struct worker *worker)
 	if (worker->flags & WORKER_IDLE)
 		pool->nr_idle--;
 
-	/*
-	 * Once WORKER_DIE is set, the kworker may destroy itself at any
-	 * point.  Pin to ensure the task stays until we're done with it.
-	 */
-	get_task_struct(worker->task);
-
 	list_del_init(&worker->entry);
 	worker->flags |= WORKER_DIE;
 
 	spin_unlock_irq(&gcwq->lock);
 
 	kthread_stop(worker->task);
-	put_task_struct(worker->task);
 	kfree(worker);
 
 	spin_lock_irq(&gcwq->lock);
@@ -1860,9 +1854,6 @@ __acquires(&gcwq->lock)
 	lock_map_acquire_read(&cwq->wq->lockdep_map);
 	lock_map_acquire(&lockdep_map);
 	trace_workqueue_execute_start(work);
-#ifdef CONFIG_SEC_DEBUG
-	secdbg_sched_msg("@%pS", worker->current_func);
-#endif
 	worker->current_func(work);
 	/*
 	 * While we must be careful to not use "work" after this, the trace
@@ -1881,15 +1872,6 @@ __acquires(&gcwq->lock)
 		BUG_ON(PANIC_CORRUPTION);
 		dump_stack();
 	}
-
-	/*
-	 * The following prevents a kworker from hogging CPU on !PREEMPT
-	 * kernels, where a requeueing work item waiting for something to
-	 * happen could deadlock with stop_machine as such work item could
-	 * indefinitely requeue itself while all other CPUs are trapped in
-	 * stop_machine.
-	 */
-	cond_resched();
 
 	spin_lock_irq(&gcwq->lock);
 
@@ -2742,16 +2724,19 @@ EXPORT_SYMBOL(flush_delayed_work_sync);
  * cancel_delayed_work_sync - cancel a delayed work and wait for it to finish
  * @dwork: the delayed work cancel
  *
- * This is cancel_work_sync() for delayed works.
+ * Delayed timer is cancelled and the pending work is queued for
+ * execution immediately.  Other than timer handling, its behavior
+ * is identical to flush_work_sync().
  *
  * RETURNS:
- * %true if @dwork was pending, %false otherwise.
+ * %true if flush_work_sync() waited for the work to finish execution,
+ * %false if it was already idle.
  */
-bool cancel_delayed_work_sync(struct delayed_work *dwork)
+bool flush_delayed_work_sync(struct delayed_work *dwork)
 {
 	return __cancel_work_timer(&dwork->work, &dwork->timer);
 }
-EXPORT_SYMBOL(cancel_delayed_work_sync);
+EXPORT_SYMBOL(flush_delayed_work_sync);
 
 /**
  * schedule_work - put work task in global workqueue
@@ -3280,6 +3265,11 @@ EXPORT_SYMBOL_GPL(work_busy);
  *                        | CPU is back online  v   return workers |
  *                         ----------------> RELEASE --------------
  */
+#define trustee_wait_event(cond) ({					\
+	long __ret1;							\
+	__ret1 = trustee_wait_event_timeout(cond, MAX_SCHEDULE_TIMEOUT);\
+	__ret1 < 0 ? -1 : 0;						\
+})
 
 /**
  * trustee_wait_event_timeout - timed event wait for trustee
@@ -3326,8 +3316,6 @@ EXPORT_SYMBOL_GPL(work_busy);
  */
 #define trustee_wait_event(cond) ({					\
 	long __ret1;							\
-	__ret1 = trustee_wait_event_timeout(cond, MAX_SCHEDULE_TIMEOUT);\
-	__ret1 < 0 ? -1 : 0;						\
 })
 
 static bool gcwq_is_managing_workers(struct global_cwq *gcwq)
@@ -3376,7 +3364,6 @@ static int __cpuinit trustee_thread(void *__gcwq)
 		pool->flags |= POOL_MANAGING_WORKERS;
 
 		list_for_each_entry(worker, &pool->idle_list, entry)
-			worker->flags |= WORKER_ROGUE;
 	}
 
 	for_each_busy_worker(worker, i, pos, gcwq)
@@ -3958,160 +3945,8 @@ static int __init init_workqueues(void)
 					      0);
 	BUG_ON(!system_wq || !system_long_wq || !system_nrt_wq ||
 	       !system_unbound_wq || !system_freezable_wq ||
-		!system_nrt_freezable_wq || !system_power_efficient_wq ||
-		!system_freezable_power_efficient_wq);
+	       !system_nrt_freezable_wq || !system_power_efficient_wq ||
+	       !system_freezable_power_efficient_wq);
 	return 0;
 }
 early_initcall(init_workqueues);
-
-#ifdef CONFIG_WORKQUEUE_FRONT
-static void insert_work_front(struct cpu_workqueue_struct *cwq,
-			struct work_struct *work, struct list_head *head,
-			unsigned int extra_flags)
-{
-	struct worker_pool *pool = cwq->pool;
-
-	/* we own @work, set data and link */
-	set_work_cwq(work, cwq, extra_flags);
-
-	/*
-	 * Ensure that we get the right work->data if we see the
-	 * result of list_add() below, see try_to_grab_pending().
-	 */
-	smp_wmb();
-
-	list_add(&work->entry, head);
-
-	/*
-	 * Ensure either worker_sched_deactivated() sees the above
-	 * list_add_tail() or we see zero nr_running to avoid workers
-	 * lying around lazily while there are works to be processed.
-	 */
-	smp_mb();
-
-	if (__need_more_worker(pool))
-		wake_up_worker(pool);
-}
-
-static void __queue_work_front(unsigned int cpu, struct workqueue_struct *wq,
-			 struct work_struct *work)
-{
-	struct global_cwq *gcwq;
-	struct cpu_workqueue_struct *cwq;
-	struct list_head *worklist;
-	unsigned int work_flags;
-	unsigned long flags;
-
-	debug_work_activate(work);
-
-	/* if dying, only works from the same workqueue are allowed */
-	if (unlikely(wq->flags & WQ_DRAINING) &&
-	    WARN_ON_ONCE(!is_chained_work(wq)))
-		return;
-
-	/* determine gcwq to use */
-	if (!(wq->flags & WQ_UNBOUND)) {
-		struct global_cwq *last_gcwq;
-
-		if (unlikely(cpu == WORK_CPU_UNBOUND))
-			cpu = raw_smp_processor_id();
-
-		/*
-		 * It's multi cpu.  If @wq is non-reentrant and @work
-		 * was previously on a different cpu, it might still
-		 * be running there, in which case the work needs to
-		 * be queued on that cpu to guarantee non-reentrance.
-		 */
-		gcwq = get_gcwq(cpu);
-		if (wq->flags & WQ_NON_REENTRANT &&
-		    (last_gcwq = get_work_gcwq(work)) && last_gcwq != gcwq) {
-			struct worker *worker;
-
-			spin_lock_irqsave(&last_gcwq->lock, flags);
-
-			worker = find_worker_executing_work(last_gcwq, work);
-
-			if (worker && worker->current_cwq->wq == wq)
-				gcwq = last_gcwq;
-			else {
-				/* meh... not running there, queue here */
-				spin_unlock_irqrestore(&last_gcwq->lock, flags);
-				spin_lock_irqsave(&gcwq->lock, flags);
-			}
-		} else
-			spin_lock_irqsave(&gcwq->lock, flags);
-	} else {
-		gcwq = get_gcwq(WORK_CPU_UNBOUND);
-		spin_lock_irqsave(&gcwq->lock, flags);
-	}
-
-	/* gcwq determined, get cwq and queue */
-	cwq = get_cwq(gcwq->cpu, wq);
-	trace_workqueue_queue_work(cpu, cwq, work);
-
-	BUG_ON(!list_empty(&work->entry));
-
-	cwq->nr_in_flight[cwq->work_color]++;
-	work_flags = work_color_to_flags(cwq->work_color);
-
-	if (likely(cwq->nr_active < cwq->max_active)) {
-		trace_workqueue_activate_work(work);
-		cwq->nr_active++;
-		worklist = &cwq->pool->worklist;
-	} else {
-		work_flags |= WORK_STRUCT_DELAYED;
-		worklist = &cwq->delayed_works;
-	}
-
-	insert_work_front(cwq, work, worklist, work_flags);
-
-	spin_unlock_irqrestore(&gcwq->lock, flags);
-}
-
-/**
- * queue_work_on_front - queue work on specific cpu
- * @cpu: CPU number to execute work on
- * @wq: workqueue to use
- * @work: work to queue
- *
- * Returns 0 if @work was already on a queue, non-zero otherwise.
- *
- * We queue the work to a specific CPU, the caller must ensure it
- * can't go away.
- */
-
-int
-queue_work_on_front(int cpu, struct workqueue_struct *wq,
-			 struct work_struct *work)
-{
-	int ret = 0;
-
-	if (!test_and_set_bit(WORK_STRUCT_PENDING_BIT, work_data_bits(work))) {
-		__queue_work_front(cpu, wq, work);
-		ret = 1;
-	}
-	return ret;
-}
-
-/**
- * queue_work - queue work on a workqueue
- * @wq: workqueue to use
- * @work: work to queue
- *
- * Returns 0 if @work was already on a queue, non-zero otherwise.
- *
- * We queue the work to the CPU on which it was submitted, but if the CPU dies
- * it can be processed by another CPU.
- */
-int queue_work_front(struct workqueue_struct *wq, struct work_struct *work)
-{
-	int ret;
-
-	ret = queue_work_on_front(get_cpu(), wq, work);
-	put_cpu();
-
-	return ret;
-}
-EXPORT_SYMBOL_GPL(queue_work_front);
-#endif
-
