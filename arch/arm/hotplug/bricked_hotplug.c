@@ -330,11 +330,10 @@ static int bricked_hotplug_start(void)
 {
 	int ret = 0;
 
-	hotplug_wq = alloc_workqueue(
-						"bricked_hotplug_wq",
-						WQ_UNBOUND | WQ_RESCUER | WQ_FREEZABLE,
-						1
-						);
+	hotplug_wq = alloc_workqueue("bricked_hotplug_wq", WQ_HIGHPRI |
+			WQ_MEM_RECLAIM |
+			WQ_UNBOUND |
+			__WQ_ORDERED, 0);
 	if (!hotplug_wq) {
 		ret = -ENOMEM;
 		goto err_out;
