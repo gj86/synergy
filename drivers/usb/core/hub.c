@@ -115,6 +115,8 @@ struct usb_hub {
 	void			**port_owners;
 };
 
+int deny_new_usb = 0;
+
 static inline int hub_is_superspeed(struct usb_device *hdev)
 {
 	return (hdev->descriptor.bDeviceProtocol == USB_HUB_PR_SS);
@@ -1936,7 +1938,7 @@ static int usb_enumerate_device_otg(struct usb_device *udev)
 		/* descriptor may appear anywhere in config */
 		if (__usb_get_extra_descriptor (udev->rawdescriptors[0],
 					le16_to_cpu(udev->config[0].desc.wTotalLength),
-					USB_DT_OTG, (void **) &desc) == 0) {
+					USB_DT_OTG, (void **) &desc, sizeof(*desc)) == 0) {
 			if (desc->bmAttributes & USB_OTG_HNP) {
 				unsigned		port1 = udev->portnum;
 
@@ -3667,6 +3669,11 @@ static void hub_port_connect_change(struct usb_hub *hub, int port1,
 		if (portstatus & USB_PORT_STAT_ENABLE)
   			goto done;
 		return;
+	}
+
+	if (deny_new_usb) {
+		dev_err(hub_dev, "denied insert of USB device on port %d\n", port1);
+		goto done;
 	}
 
 	for (i = 0; i < SET_CONFIG_TRIES; i++) {
