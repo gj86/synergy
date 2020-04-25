@@ -4696,7 +4696,7 @@ config MSM_CPU_PWRCTL
 
 config MSM_LIMITER
 	bool "Add msm limiter"
-	default n
+	default y
 	help
 	  Add or remove msm limiter.
 
