@@ -547,6 +547,12 @@ config SND_SOC_MSM_HDMI_CODEC_RX
 
 config SOUND_CONTROL_HAX_3_GPL
 	tristate "new wcd93xx sound control hax"
-	default y
+	default n
 	help
 	  FauxSound WCD93xx chipset sound control hacks 3.0 for deeper hax
+
+config BOEFFLA_SOUND
+	bool "Boeffla Sound engine"
+	default y
+	help
+		Boeffla sound engine by andip71 (aka Lord Boeffla)
