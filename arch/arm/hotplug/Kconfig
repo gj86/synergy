@@ -23,7 +23,7 @@ config AUTOSMP
 config BRICKED_HOTPLUG
 	bool "Enable kernel based mpdecision"
 	depends on MSM_RUN_QUEUE_STATS
-	default y
+	default n
 	help
 	 This enables kernel based multi core control.
 	 (up/down hotplug based on load)
@@ -37,14 +37,14 @@ config BLU_PLUG
 
 config MAKO_HOTPLUG
 	bool "Mako Hotplug"
-	default y
+	default n
 	help
 	  Mako Hotplug: A custom hotplug by fransisco franco
 
 config THUNDERPLUG_CONTROL
 	bool "Enable plugging down/up of cores based on load per core"
 	depends on SMP && HOTPLUG_CPU
-	default y
+	default n
 	help
 	  This driver hotplugs cpu cores based on per-core load
 
