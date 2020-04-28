@@ -74,7 +74,7 @@ static unsigned int hispeed_freq = 1574400;
 static unsigned long go_hispeed_load = DEFAULT_GO_HISPEED_LOAD;
 
 /* Go to lowest speed when CPU load at or below this value. */
-#define DEFAULT_GO_LOWSPEED_LOAD 5
+#define DEFAULT_GO_LOWSPEED_LOAD 40
 static unsigned long go_lowspeed_load = DEFAULT_GO_LOWSPEED_LOAD;
 
 /* Target load.  Lower values result in higher CPU speeds. */
@@ -132,7 +132,7 @@ static bool align_windows = true;
  * Stay at max freq for at least max_freq_hysteresis before dropping
  * frequency.
  */
-static unsigned int max_freq_hysteresis;
+static unsigned int max_freq_hysteresis = 0;
 
 /* Round to starting jiffy of next evaluation window */
 static u64 round_to_nw_start(u64 jif)
