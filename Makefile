@@ -432,6 +432,7 @@ KBUILD_CFLAGS   := -Wall -Wundef -Wstrict-prototypes -Wno-trigraphs \
 		   -Wno-incompatible-pointer-types \
 		   -Wno-logical-not-parentheses \
 		   -Wno-bool-compare \
+		   -Wno-deprecated-declarations \
 		   -std=gnu89
 
 KBUILD_CFLAGS	+=  -s -pipe -fno-pic -mfloat-abi=softfp
