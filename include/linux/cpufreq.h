@@ -40,8 +40,6 @@ int cpufreq_set_freq(unsigned int max_freq, unsigned int min_freq,
 int cpufreq_get_max(unsigned int cpu);
 int cpufreq_get_min(unsigned int cpu);
 #endif
-#define CPUFREQ_GOVINFO_NOTIFIER	(2)
-
 #ifdef CONFIG_CPU_FREQ
 int cpufreq_register_notifier(struct notifier_block *nb, unsigned int list);
 int cpufreq_unregister_notifier(struct notifier_block *nb, unsigned int list);
@@ -67,13 +65,6 @@ static inline void disable_cpufreq(void) { }
 
 #define CPUFREQ_POLICY_POWERSAVE	(1)
 #define CPUFREQ_POLICY_PERFORMANCE	(2)
-
-/* Governor Events */
-#define CPUFREQ_GOV_START	1
-#define CPUFREQ_GOV_STOP	2
-#define CPUFREQ_GOV_LIMITS	3
-#define CPUFREQ_GOV_POLICY_INIT	4
-#define CPUFREQ_GOV_POLICY_EXIT	5
 
 /* Minimum frequency cutoff to notify the userspace about cpu utilization
  * changes */
@@ -108,14 +99,11 @@ struct cpufreq_real_policy {
 };
 
 struct cpufreq_policy {
-			/* CPUs sharing clock, require sw coordination */
-	cpumask_var_t		cpus;	/* Online CPUs only */
-	cpumask_var_t		related_cpus; /* Online + Offline CPUs */
-	unsigned int		shared_type; /* ACPI: ANY or ALL affected CPUs
+	cpumask_var_t		cpus;	/* CPUs requiring sw coordination */
+	cpumask_var_t		related_cpus; /* CPUs with any coordination */
+	unsigned int		shared_type; /* ANY or ALL affected CPUs
 						should set cpufreq */
-	unsigned int		cpu;    /* cpu nr of CPU managing this policy */
-	unsigned int		last_cpu; /* cpu nr of previous CPU that managed
-								   * this policy */
+	unsigned int		cpu;    /* cpu nr of registered CPU */
 	struct cpufreq_cpuinfo	cpuinfo;/* see above */
 
 	unsigned int		min;    /* in kHz */
@@ -128,30 +116,14 @@ struct cpufreq_policy {
 #endif
 	unsigned int		policy; /* see above */
 	struct cpufreq_governor	*governor; /* see below */
-	void			*governor_data;
-	bool			governor_enabled; /* governor start/stop flag */
 
 	struct work_struct	update; /* if update_policy() needs to be
 					 * called, but you're in IRQ context */
 
 	struct cpufreq_real_policy	user_policy;
 
-	struct list_head        policy_list;
 	struct kobject		kobj;
 	struct completion	kobj_unregister;
-	/*
-	 * The rules for this semaphore:
-	 * - Any routine that wants to read from the policy structure will
-	 *   do a down_read on this semaphore.
-	 * - Any routine that will write to the policy structure and/or may take away
-	 *   the policy altogether (eg. CPU hotplug), will hold this lock in write
-	 *   mode before doing so.
-	 *
-	 * Additional rules:
-	 * - Lock should not be held across
-	 *     __cpufreq_governor(data, CPUFREQ_GOV_POLICY_EXIT);
-	 */
-	struct rw_semaphore	rwsem;
 };
 
 #define CPUFREQ_ADJUST		(0)
@@ -218,7 +190,6 @@ static inline unsigned long cpufreq_scale(unsigned long old, u_int div, u_int mu
 
 struct cpufreq_governor {
 	char	name[CPUFREQ_NAME_LEN];
-	int	initialized;
 	int	(*governor)	(struct cpufreq_policy *policy,
 				 unsigned int event);
 	ssize_t	(*show_setspeed)	(struct cpufreq_policy *policy,
@@ -300,13 +271,6 @@ struct cpufreq_driver {
 					 * frequency transitions */
 #define CPUFREQ_PM_NO_WARN	0x04	/* don't warn on suspend/resume speed
 					 * mismatches */
-/*
- * This should be set by platforms having multiple clock-domains, i.e.
- * supporting multiple policies. With this sysfs directories of governor would
- * be created in cpu/cpu<num>/cpufreq/ directory and so they can use the same
- * governor with different tunables for different clusters.
- */
-#define CPUFREQ_HAVE_GOVERNOR_PER_POLICY (1 << 3)
 
 int cpufreq_register_driver(struct cpufreq_driver *driver_data);
 int cpufreq_unregister_driver(struct cpufreq_driver *driver_data);
@@ -372,16 +336,10 @@ __ATTR(_name, 0644, show_##_name, store_##_name)
 u64 get_cpu_idle_time(unsigned int cpu, u64 *wall, int io_busy);
 int cpufreq_get_policy(struct cpufreq_policy *policy, unsigned int cpu);
 int cpufreq_update_policy(unsigned int cpu);
-bool have_governor_per_policy(void);
-struct kobject *get_governor_parent_kobj(struct cpufreq_policy *policy);
 
 #ifdef CONFIG_CPU_FREQ
 /* query the current CPU frequency (in kHz). If zero, cpufreq couldn't detect it */
 unsigned int cpufreq_get(unsigned int cpu);
-unsigned int cpufreq_quick_get(unsigned int cpu);
-unsigned int cpufreq_quick_get_max(unsigned int cpu);
-unsigned int cpufreq_quick_get_util(unsigned int cpu);
-void disable_cpufreq(void);
 #else
 static inline unsigned int cpufreq_get(unsigned int cpu)
 {
@@ -403,88 +361,6 @@ static inline unsigned int cpufreq_quick_get_max(unsigned int cpu)
 {
 	return 0;
 }
-#endif
-
-#if defined (CONFIG_SEC_DVFS) || defined (CONFIG_CPU_FREQ_LIMIT_USERSPACE)
-enum {
-	BOOT_CPU = 0,
-#if defined(CONFIG_SEC_MILLET_PROJECT) || defined(CONFIG_SEC_MATISSE_PROJECT) || defined(CONFIG_SEC_VICTOR_PROJECT) \
-	|| defined(CONFIG_SEC_BERLUTI_PROJECT)|| defined(CONFIG_SEC_FRESCONEO_PROJECT) || defined(CONFIG_SEC_AFYON_PROJECT) \
-	|| defined(CONFIG_SEC_S3VE_PROJECT) || defined(CONFIG_SEC_ATLANTIC_PROJECT) || defined(CONFIG_SEC_DEGAS_PROJECT) \
-	|| defined(CONFIG_SEC_HESTIA_PROJECT) || defined(CONFIG_SEC_MEGA2_PROJECT) || defined(CONFIG_SEC_GNOTE_PROJECT) \
-	|| defined(CONFIG_SEC_T10_PROJECT) || defined(CONFIG_SEC_T8_PROJECT) || defined(CONFIG_SEC_VASTA_PROJECT) || defined(CONFIG_SEC_VICTOR3GDSDTV_PROJECT) \
-	|| defined(CONFIG_SEC_RUBENS_PROJECT) || defined(CONFIG_SEC_VASTALTE_CHN_CMMCC_DUOS_PROJECT)
-	NON_BOOT_CPU,
-#endif
-};
-#if defined(CONFIG_SEC_MILLET_PROJECT) || defined(CONFIG_SEC_MATISSE_PROJECT) || defined(CONFIG_SEC_VICTOR_PROJECT) \
-	|| defined(CONFIG_SEC_BERLUTI_PROJECT)|| defined(CONFIG_SEC_FRESCONEO_PROJECT) || defined(CONFIG_SEC_AFYON_PROJECT) \
-	|| defined(CONFIG_SEC_S3VE_PROJECT) || defined(CONFIG_SEC_ATLANTIC_PROJECT) || defined(CONFIG_SEC_DEGAS_PROJECT) \
-	|| defined(CONFIG_SEC_HESTIA_PROJECT) || defined(CONFIG_SEC_MEGA2_PROJECT) || defined(CONFIG_SEC_GNOTE_PROJECT) \
-	|| defined(CONFIG_SEC_T10_PROJECT) || defined(CONFIG_SEC_T8_PROJECT) || defined(CONFIG_SEC_VASTA_PROJECT) || defined(CONFIG_SEC_VICTOR3GDSDTV_PROJECT) \
-	|| defined(CONFIG_SEC_MS01_PROJECT) || defined(CONFIG_SEC_RUBENS_PROJECT) || defined(CONFIG_SEC_VASTALTE_CHN_CMMCC_DUOS_PROJECT)
-
-int get_max_freq(void);
-int get_min_freq(void);
-
-#define MAX_FREQ_LIMIT		get_max_freq() /* 1512000 */
-#define MIN_FREQ_LIMIT		get_min_freq() /* 384000 */
-#define MIN_TOUCH_LIMIT_SECOND 787200
-#define MIN_TOUCH_LIMIT		998400
-#define MIN_TOUCH_LIMIT_SECOND_9LEVEL	MIN_TOUCH_LIMIT
-#define MAX_UNICPU_LIMIT	1190400
-#define MIN_SENSOR_LIMIT	1497600
-#if defined(CONFIG_SEC_GNOTE_PROJECT) || defined(CONFIG_SEC_HESTIA_PROJECT) || defined(CONFIG_SEC_RUBENS_PROJECT)
-#define MIN_TOUCH_LOW_LIMIT	1497600
-#define MIN_TOUCH_HIGH_LIMIT	2457600
-#endif
-
-#define UPDATE_NOW_BITS		0xFF
-#else
-#define MIN_TOUCH_LOW_LIMIT	1497600
-#if defined(CONFIG_SEC_S_PROJECT)
-#define MIN_TOUCH_LIMIT			1190400
-#define MIN_TOUCH_LIMIT_SECOND		883200
-#define MIN_TOUCH_LIMIT_SECOND_9LEVEL	1190400
-#else
-#define MIN_TOUCH_LIMIT		1190400
-#define MIN_TOUCH_LIMIT_SECOND		1190400
-#define MIN_TOUCH_LIMIT_SECOND_9LEVEL	MIN_TOUCH_LIMIT
-#endif
-#define MIN_TOUCH_HIGH_LIMIT	2457600
-#define MIN_CAMERA_LIMIT    998400
-#endif
-enum {
-	DVFS_NO_ID			= 0,
-
-	/* need to update now */
-	DVFS_TOUCH_ID			= 0x00000001,
-	DVFS_APPS_MIN_ID		= 0x00000002,
-	DVFS_APPS_MAX_ID		= 0x00000004,
-	DVFS_UNICPU_ID			= 0x00000008,
-	DVFS_LTETP_ID			= 0x00000010,
-	DVFS_CAMERA_ID		= 0x00000012,
-	DVFS_SENSOR_ID		= 0x00000020,
-
-	/* DO NOT UPDATE NOW */
-	DVFS_THERMALD_ID		= 0x00000100,
-
-	DVFS_MAX_ID
-};
-
-
-int set_freq_limit(unsigned long id, unsigned int freq);
-#if defined(CONFIG_SEC_MILLET_PROJECT) || defined(CONFIG_SEC_MATISSE_PROJECT) || defined(CONFIG_SEC_VICTOR_PROJECT) \
-	|| defined(CONFIG_SEC_BERLUTI_PROJECT)|| defined(CONFIG_SEC_FRESCONEO_PROJECT) || defined(CONFIG_SEC_AFYON_PROJECT) \
-	|| defined(CONFIG_SEC_S3VE_PROJECT) || defined(CONFIG_SEC_ATLANTIC_PROJECT) || defined(CONFIG_SEC_DEGAS_PROJECT) \
-	|| defined(CONFIG_SEC_HESTIA_PROJECT) || defined(CONFIG_SEC_MEGA2_PROJECT) ||  defined(CONFIG_SEC_GNOTE_PROJECT) \
-	|| defined(CONFIG_SEC_T10_PROJECT) || defined(CONFIG_SEC_T8_PROJECT) || defined(CONFIG_SEC_VASTA_PROJECT) || defined(CONFIG_SEC_VICTOR3GDSDTV_PROJECT) \
-	|| defined(CONFIG_SEC_MS01_PROJECT) || defined(CONFIG_SEC_RUBENS_PROJECT)  || defined(CONFIG_SEC_VASTALTE_CHN_CMMCC_DUOS_PROJECT)
-unsigned int get_min_lock(void);
-unsigned int get_max_lock(void);
-void set_min_lock(int freq);
-void set_max_lock(int freq);
-#endif
 #endif
 
 
@@ -517,7 +393,6 @@ extern struct cpufreq_governor cpufreq_gov_conservative;
 #elif defined(CONFIG_CPU_FREQ_DEFAULT_GOV_INTERACTIVE)
 extern struct cpufreq_governor cpufreq_gov_interactive;
 #define CPUFREQ_DEFAULT_GOVERNOR	(&cpufreq_gov_interactive)
-/* New Governors */
 #elif defined(CONFIG_CPU_FREQ_DEFAULT_GOV_INTELLIACTIVE)
 extern struct cpufreq_governor cpufreq_gov_intelliactive;
 #define CPUFREQ_DEFAULT_GOVERNOR	(&cpufreq_gov_intelliactive)
@@ -592,13 +467,6 @@ void cpufreq_frequency_table_get_attr(struct cpufreq_frequency_table *table,
 
 void cpufreq_frequency_table_put_attr(unsigned int cpu);
 
-/*********************************************************************
- *                         CPUFREQ STATS                             *
- *********************************************************************/
-
-void acct_update_power(struct task_struct *p, cputime_t cputime);
-
-const char *cpufreq_get_current_driver(void);
 
 /*********************************************************************
  *                         CPUFREQ STATS                             *
