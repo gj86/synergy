@@ -1463,8 +1463,6 @@ static void __queue_delayed_work(int cpu, struct workqueue_struct *wq,
 		return;
 	}
 
-	timer_stats_timer_set_start_info(&dwork->timer);
-
 	dwork->wq = wq;
 	dwork->cpu = cpu;
 	timer->expires = jiffies + delay;
@@ -3028,19 +3026,16 @@ EXPORT_SYMBOL(cancel_delayed_work);
  * cancel_delayed_work_sync - cancel a delayed work and wait for it to finish
  * @dwork: the delayed work cancel
  *
- * Delayed timer is cancelled and the pending work is queued for
- * execution immediately.  Other than timer handling, its behavior
- * is identical to flush_work_sync().
+ * This is cancel_work_sync() for delayed works.
  *
  * RETURNS:
- * %true if flush_work_sync() waited for the work to finish execution,
- * %false if it was already idle.
+ * %true if @dwork was pending, %false otherwise.
  */
-bool flush_delayed_work_sync(struct delayed_work *dwork)
+bool cancel_delayed_work_sync(struct delayed_work *dwork)
 {
 	return __cancel_work_timer(&dwork->work, true);
 }
-EXPORT_SYMBOL(flush_delayed_work_sync);
+EXPORT_SYMBOL(cancel_delayed_work_sync);
 
 /**
  * schedule_on_each_cpu - execute a function synchronously on each online CPU
@@ -4561,11 +4556,6 @@ void print_worker_info(const char *log_lvl, struct task_struct *task)
  * running as an unbound one and allowing it to be reattached later if the
  * cpu comes back online.
  */
-#define trustee_wait_event(cond) ({					\
-	long __ret1;							\
-	__ret1 = trustee_wait_event_timeout(cond, MAX_SCHEDULE_TIMEOUT);\
-	__ret1 < 0 ? -1 : 0;						\
-})
 
 static void wq_unbind_fn(struct work_struct *work)
 {
