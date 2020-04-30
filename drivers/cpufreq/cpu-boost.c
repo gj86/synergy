@@ -47,14 +47,10 @@ static struct workqueue_struct *cpu_boost_wq;
 
 static struct work_struct input_boost_work;
 
-#ifdef CONFIG_LCD_NOTIFY
-static struct notifier_block notif;
-#endif
-
-static unsigned int boost_ms;
+static unsigned int boost_ms = 40;
 module_param(boost_ms, uint, 0644);
 
-static unsigned int sync_threshold;
+static unsigned int sync_threshold = 1190400;
 module_param(sync_threshold, uint, 0644);
 
 static unsigned int input_boost_enabled = 1;
@@ -63,17 +59,17 @@ module_param(input_boost_enabled, uint, 0644);
 static unsigned int input_boost_ms = 40;
 module_param(input_boost_ms, uint, 0644);
 
-static unsigned int migration_load_threshold = 15;
+static unsigned int migration_load_threshold = 50;
 module_param(migration_load_threshold, uint, 0644);
 
-static bool load_based_syncs;
+static bool load_based_syncs = true;
 module_param(load_based_syncs, bool, 0644);
 
-static bool hotplug_boost;
+static bool hotplug_boost = false;
 module_param(hotplug_boost, bool, 0644);
 
 #ifdef CONFIG_STATE_NOTIFIER
-bool wakeup_boost;
+bool wakeup_boost = false;
 module_param(wakeup_boost, bool, 0644);
 #endif
 
