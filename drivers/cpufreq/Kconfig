@@ -188,7 +188,6 @@ config CPU_FREQ_DEFAULT_GOV_DARKNESS
 	select CPU_FREQ_GOV_DARKNES	  
 
 config CPU_FREQ_DEFAULT_GOV_LIONHEART
-
 	bool "lionheart"
 	select CPU_FREQ_GOV_LIONHEART
 	select CPU_FREQ_GOV_PERFORMANCE
@@ -254,6 +253,7 @@ config CPU_FREQ_GOV_ONDEMAND
 
 config CPU_FREQ_GOV_INTERACTIVE
 	tristate "'interactive' cpufreq policy governor"
+	default y
 	help
 	  'interactive' - This driver adds a dynamic cpufreq policy governor
 	  designed for latency-sensitive workloads.
@@ -294,6 +294,7 @@ config CPU_FREQ_GOV_CONSERVATIVE
 
 config CPU_FREQ_GOV_INTELLIACTIVE
 	tristate "'intelliactive' cpufreq policy governor"
+	default y
 	help
 	  'intelliactive' - This driver adds a dynamic cpufreq policy governor
 	  designed for latency-sensitive workloads.
@@ -312,6 +313,7 @@ config CPU_FREQ_GOV_INTELLIACTIVE
 config CPU_FREQ_GOV_SLIM
 	tristate "'slim' cpufreq policy governor"
 	select CPU_FREQ_TABLE
+	default y
 	help
 	  'slim' - This driver adds a dynamic cpufreq policy governor.
 
@@ -322,30 +324,16 @@ config CPU_FREQ_GOV_SLIM
 
 	  If in doubt, say N.
 
-config CPU_FREQ_GOV_YANKACTIVE
-	tristate "'yankactive' cpufreq policy governor"
-	help
-	  'yankactive' - This driver adds a dynamic cpufreq policy governor
-	  designed for latency-sensitive workloads.
-
-	  The governor is based on interactive with just different default settings
-	  and can be achieved using interactive with a script. This is added for
-	  simplification purposes for myself.
-
 config CPU_FREQ_GOV_SMARTMAX
-        tristate "'smartmax' cpufreq policy governor"
-        select CPU_FREQ_TABLE
-        help
-          'smartmax' combined ondemand and smartass2
+    tristate "'smartmax' cpufreq policy governor"
+    select CPU_FREQ_TABLE
+	default y
+    help
+      'smartmax' combined ondemand and smartass2
           
-config CPU_FREQ_GOV_SMARTMAX_EPS
-        tristate "'smartmax EPS' cpufreq policy governor"
-        select CPU_FREQ_TABLE
-        help
-          'smartmax EPS' is the extreme powersaving version of smartmax
-
 config CPU_FREQ_GOV_IMPULSE
 	tristate "'impulse' cpufreq policy governor"
+	default y
 	help
 	  'impulse' - This driver adds a dynamic cpufreq policy governor
 	  designed for optimized balance between power and performance.
@@ -362,13 +350,6 @@ config CPU_FREQ_GOV_ALUCARD
 	tristate "'alucard' cpufreq governor"
 	depends on CPU_FREQ
 
-config CPU_FREQ_GOV_NIGHTMARE
-	tristate "'nightmare' cpufreq governor"
-	depends on CPU_FREQ
-
-config CPU_FREQ_GOV_DARKNESS
-	tristate "'darkness' cpufreq policy governor"
-
 config CPU_FREQ_GOV_LIONHEART
 	tristate "'lionheart' cpufreq governor"
 	depends on CPU_FREQ
@@ -376,14 +357,6 @@ config CPU_FREQ_GOV_LIONHEART
 	  'lionheart' - the lionheart governor
 
 	  If in doubt, say N.
-
-config CPU_FREQ_GOV_PHANTOM
-	tristate "'phantom' cpufreq policy governor"
-	help
-	  'phantom' - This driver adds a dynamic cpufreq policy governor
-	  designed for latency-sensitive workloads.
-
-	  The governor is based on yankactive for phantom kernel.
 
 config CPU_INPUT_BOOST
 	bool "CPU Input Boost"
