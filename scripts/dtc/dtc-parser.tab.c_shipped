@@ -69,6 +69,8 @@
 #include "dtc.h"
 #include "srcpos.h"
 
+extern YYLTYPE yylloc;
+
 extern int yylex(void);
 extern void yyerror(char const *s);
 #define ERROR(loc, ...) \
