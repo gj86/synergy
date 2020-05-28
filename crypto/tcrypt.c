@@ -22,6 +22,8 @@
  *
  */
 
+#define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
+
 #include <crypto/hash.h>
 #include <linux/err.h>
 #include <linux/init.h>
@@ -985,6 +987,8 @@ static inline int tcrypt_test(const char *alg)
 {
 	int ret;
 
+	pr_debug("testing %s\n", alg);
+
 	ret = alg_test(alg, alg, 0, 0);
 	/* non-fips algs return -EINVAL in fips mode */
 	if (fips_enabled && ret == -EINVAL)
@@ -1722,6 +1726,8 @@ static int __init tcrypt_mod_init(void)
 		printk(KERN_ERR "tcrypt: one or more tests failed!\n");
 		goto err_free_tv;
 #ifndef CONFIG_CRYPTO_FIPS
+	} else {
+		pr_debug("all tests passed\n");
 	}
 #else
 	} else {
