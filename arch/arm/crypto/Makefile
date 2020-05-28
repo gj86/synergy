@@ -21,9 +21,6 @@ sha256-arm-neon-$(CONFIG_KERNEL_MODE_NEON) := sha256_neon_glue.o
 sha256-arm-y	:= sha256-core.o sha256_glue.o $(sha256-arm-neon-y)
 sha512-arm-neon-y := sha512-armv7-neon.o sha512_neon_glue.o
 
-#Keep this at the bottom
-obj-$(CONFIG_CRYPTO_FIPS) += last_file_asm.o
-
 quiet_cmd_perl = PERL    $@
       cmd_perl = $(PERL) $(<) > $(@)
 
@@ -35,3 +32,5 @@ $(src)/sha256-core.S_shipped: $(src)/sha256-armv4.pl
 
 .PRECIOUS: $(obj)/aesbs-core.S $(obj)/sha256-core.S
 
+#Keep this at the bottom
+obj-$(CONFIG_CRYPTO_FIPS) += last_file_asm.o
