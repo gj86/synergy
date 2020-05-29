@@ -1015,7 +1015,7 @@ static int oom_adjust_permission(struct inode *inode, int mask)
 		put_task_struct(p);
 	}
 
-	/*
+	 *
 	 * System Server (uid == 1000) is granted access to oom_adj of all
 	 * android applications (uid > 10000) as and services (uid >= 1000)
 	 *
