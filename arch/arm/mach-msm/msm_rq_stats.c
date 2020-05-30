@@ -204,9 +204,6 @@ static int system_suspend_handler(struct notifier_block *nb,
 	if (!rq_info.hotplug_enabled)
 		return NOTIFY_OK;
 
-	if (rq_info.bricked_hotplug_enabled)
-		return NOTIFY_OK;
-
 	switch (val) {
 	case PM_POST_HIBERNATION:
 	case PM_POST_RESTORE:
@@ -266,14 +263,11 @@ static ssize_t store_hotplug_enable(struct kobject *kobj,
 
 	rq_info.hotplug_enabled = val;
 
-	if (!rq_info.bricked_hotplug_enabled) {
-		if (rq_info.hotplug_enabled)
-			rq_info.hotplug_disabled = 0;
-		else
-			rq_info.hotplug_disabled = 1;
-	} else
+	if (rq_info.hotplug_enabled)
+		rq_info.hotplug_disabled = 0;
+	else
 		rq_info.hotplug_disabled = 1;
-
+	
 	spin_unlock_irqrestore(&rq_lock, flags);
 
 	return count;
@@ -290,56 +284,6 @@ static struct kobj_attribute hotplug_disabled_attr = __ATTR_RO(hotplug_disable);
 static struct kobj_attribute hotplug_enabled_attr =
 	__ATTR(hotplug_enable, S_IWUSR | S_IRUSR, show_hotplug_enable,
 	       store_hotplug_enable);
-
-static ssize_t store_bricked_hotplug_enable(struct kobject *kobj,
-				struct kobj_attribute *attr,
-				const char *buf, size_t count)
-{
-	int ret;
-	unsigned int val;
-	unsigned long flags = 0;
-
-	spin_lock_irqsave(&rq_lock, flags);
-	ret = sscanf(buf, "%u", &val);
-	if (ret != 1 || val < 0 || val > 1)
-		return -EINVAL;
-
-	rq_info.bricked_hotplug_enabled = val;
-
-	spin_unlock_irqrestore(&rq_lock, flags);
-
-	return count;
-}
-
-static ssize_t show_bricked_hotplug_enable(struct kobject *kobj,
-				struct kobj_attribute *attr, char *buf)
-{
-	return snprintf(buf, MAX_LONG_SIZE, "%d\n",
-			rq_info.bricked_hotplug_enabled);
-}
-
-static struct kobj_attribute bricked_hotplug_enabled_attr =
-		__ATTR(bricked_hotplug_enable, S_IWUSR | S_IRUSR,
-		show_bricked_hotplug_enable,
-		store_bricked_hotplug_enable);
-
-#ifdef CONFIG_BRICKED_HOTPLUG
-unsigned int get_rq_info(void)
-{
-	unsigned long flags = 0;
-	unsigned int rq = 0;
-
-	spin_lock_irqsave(&rq_lock, flags);
-
-	rq = rq_info.rq_avg;
-	rq_info.rq_avg = 0;
-
-	spin_unlock_irqrestore(&rq_lock, flags);
-
-	return rq;
-}
-EXPORT_SYMBOL(get_rq_info);
-#endif
 
 static void def_work_fn(struct work_struct *work)
 {
@@ -423,15 +367,11 @@ static ssize_t show_def_timer_ms(struct kobject *kobj,
 	if (rq_info.hotplug_disabled) {
 		return snprintf(buf, MAX_LONG_SIZE, "%u\n", 5);
 	} else {
-		if (rq_info.bricked_hotplug_enabled) {
-			return snprintf(buf, MAX_LONG_SIZE, "%u\n", 5);
-		} else {
-			diff = ktime_to_ns(ktime_get()) - rq_info.def_start_time;
-			do_div(diff, 1000 * 1000);
-			udiff = (unsigned int) diff;
+		diff = ktime_to_ns(ktime_get()) - rq_info.def_start_time;
+		do_div(diff, 1000 * 1000);
+		udiff = (unsigned int) diff;
 
-			return snprintf(buf, MAX_LONG_SIZE, "%u\n", udiff);
-		}
+		return snprintf(buf, MAX_LONG_SIZE, "%u\n", udiff);
 	}
 }
 
@@ -458,11 +398,8 @@ static struct kobj_attribute def_timer_ms_attr =
 static ssize_t show_cpu_normalized_load(struct kobject *kobj,
 		struct kobj_attribute *attr, char *buf)
 {
-	if (!rq_info.bricked_hotplug_enabled)
-		return snprintf(buf, MAX_LONG_SIZE, "%u\n",
-			rq_info.hotplug_enabled ? report_load_at_max_freq() : 0);
-	else
-		return snprintf(buf, MAX_LONG_SIZE, "%u\n", 0);
+	return snprintf(buf, MAX_LONG_SIZE, "%u\n",
+		rq_info.hotplug_enabled ? report_load_at_max_freq() : 0);
 }
 
 static struct kobj_attribute cpu_normalized_load_attr =
@@ -476,7 +413,6 @@ static struct attribute *rq_attrs[] = {
 	&run_queue_poll_ms_attr.attr,
 	&hotplug_disabled_attr.attr,
 	&hotplug_enabled_attr.attr,
-	&bricked_hotplug_enabled_attr.attr,
 	NULL,
 };
 
@@ -528,7 +464,6 @@ static int __init msm_rq_stats_init(void)
 	rq_info.def_timer_last_jiffy = 0;
 	rq_info.hotplug_disabled = 0;
 	rq_info.hotplug_enabled = 1;
-	rq_info.bricked_hotplug_enabled = 1;
 	ret = init_rq_attribs();
 
 	rq_info.init = 1;
