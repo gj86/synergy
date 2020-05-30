@@ -303,7 +303,6 @@ static ssize_t show_##file_name						\
 {									\
 	return sprintf(buf, "%u\n", asmp_param.object);			\
 }
-show_one(delay, delay);
 show_one(cpufreq_up, cpufreq_up);
 show_one(cpufreq_down, cpufreq_down);
 
