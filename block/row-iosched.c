@@ -782,18 +782,16 @@ done:
  * this dispatch queue
  *
  */
-static void *row_init_queue(struct request_queue *q)
+static int row_init_queue(struct request_queue *q)
 {
-
 	struct row_data *rdata;
 	int i;
 
 	rdata = kmalloc_node(sizeof(*rdata),
 			     GFP_KERNEL | __GFP_ZERO, q->node);
 	if (!rdata)
-		return NULL;
+		return -ENOMEM;
 
-	memset(rdata, 0, sizeof(*rdata));
 	for (i = 0; i < ROWQ_MAX_PRIO; i++) {
 		INIT_LIST_HEAD(&rdata->row_queues[i].fifo);
 		rdata->row_queues[i].disp_quantum = row_queues_def[i].quantum;
@@ -823,8 +821,9 @@ static void *row_init_queue(struct request_queue *q)
 	rdata->last_served_ioprio_class = IOPRIO_CLASS_NONE;
 	rdata->rd_idle_data.idling_queue_idx = ROWQ_MAX_PRIO;
 	rdata->dispatch_queue = q;
+	q->elevator->elevator_data = rdata;
 
-	return rdata;
+	return 0;
 }
 
 /*
