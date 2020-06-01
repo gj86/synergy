@@ -614,16 +614,17 @@ static void fiops_kick_queue(struct work_struct *work)
 	spin_unlock_irq(q->queue_lock);
 }
 
-static void *fiops_init_queue(struct request_queue *q)
+static int fiops_init_queue(struct request_queue *q)
 {
 	struct fiops_data *fiopsd;
 	int i;
 
-	fiopsd = kzalloc_node(sizeof(*fiopsd), GFP_KERNEL, q->node);
+	fiopsd = kmalloc_node(sizeof(*fiopsd), GFP_KERNEL | __GFP_ZERO, q->node);
 	if (!fiopsd)
-		return NULL;
+		return -ENOMEM;
 
 	fiopsd->queue = q;
+	q->elevator->elevator_data = fiopsd;
 
 	for (i = IDLE_WORKLOAD; i <= RT_WORKLOAD; i++)
 		fiopsd->service_tree[i] = FIOPS_RB_ROOT;
@@ -635,7 +636,7 @@ static void *fiops_init_queue(struct request_queue *q)
 	fiopsd->sync_scale = VIOS_SYNC_SCALE;
 	fiopsd->async_scale = VIOS_ASYNC_SCALE;
 
-	return fiopsd;
+	return 0;
 }
 
 static void fiops_init_icq(struct io_cq *icq)
