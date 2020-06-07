@@ -14,10 +14,11 @@
 #include <linux/crypto.h>
 #include <linux/module.h>
 
-#include <asm/crypto/sha1.h>
 #include <asm/hwcap.h>
 #include <asm/neon.h>
 #include <asm/simd.h>
+
+#include "sha1.h"
 
 MODULE_DESCRIPTION("SHA1 secure hash using ARMv8 Crypto Extensions");
 MODULE_AUTHOR("Ard Biesheuvel <ard.biesheuvel@linaro.org>");
