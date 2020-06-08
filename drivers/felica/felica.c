@@ -747,6 +747,10 @@ static long felica_uart_ioctl(struct file *file, unsigned int cmd,
  */
 static void felica_nl_init(void)
 {
+	struct netlink_kernel_cfg cfg = {
+		.input	= felica_nl_recv_msg,
+	};
+
 	FELICA_PR_DBG(" %s START", __func__);
 
 	gfa_connect_flag = 0;
@@ -756,8 +760,7 @@ static void felica_nl_init(void)
 	memset(gfa_rcv_str, 0, FELICA_NL_MSG_SIZE);
 
 	gfanl_sk =
-	    netlink_kernel_create(&init_net, FELICA_NL_NETLINK_USER, 0,
-				  felica_nl_recv_msg, NULL, THIS_MODULE);
+	    netlink_kernel_create(&init_net, FELICA_NL_NETLINK_USER, &cfg);
 	if (!gfanl_sk)
 		FELICA_PR_ERR(" Error creating socket. %s\n", __func__);
 

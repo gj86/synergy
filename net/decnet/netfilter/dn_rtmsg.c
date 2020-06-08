@@ -134,7 +134,7 @@ static int __init dn_rtmsg_init(void)
 	};	
 
 	dnrmg = netlink_kernel_create(&init_net,
-				      NETLINK_DNRTMSG, THIS_MODULE, &cfg);
+				      NETLINK_DNRTMSG, &cfg);
 	if (dnrmg == NULL) {
 		printk(KERN_ERR "dn_rtmsg: Cannot create netlink socket");
 		return -ENOMEM;

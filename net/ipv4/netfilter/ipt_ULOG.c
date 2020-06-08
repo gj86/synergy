@@ -396,7 +396,7 @@ static int __init ulog_tg_init(void)
 		setup_timer(&ulog_buffers[i].timer, ulog_timer, i);
 
 	nflognl = netlink_kernel_create(&init_net, NETLINK_NFLOG,
-									THIS_MODULE, &cfg);
+									&cfg);
 	if (!nflognl)
 		return -ENOMEM;
 
