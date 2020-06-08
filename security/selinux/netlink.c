@@ -113,7 +113,7 @@ static int __init selnl_init(void)
 	};
 
 	selnl = netlink_kernel_create(&init_net, NETLINK_SELINUX,
-				       			THIS_MODULE, &cfg);
+				       			&cfg);
 	if (selnl == NULL)
 		panic("SELinux:  Cannot create netlink socket.");
 	netlink_set_nonroot(NETLINK_SELINUX, NL_NONROOT_RECV);
