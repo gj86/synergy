@@ -61,7 +61,7 @@ void default_idle(void)
 {
 	if (hlt_works()) {
 		clear_thread_flag(TIF_POLLING_NRFLAG);
-		smp_mb__after_clear_bit();
+		smp_mb__after_atomic();
 
 		set_bl_bit();
 		if (!need_resched()) {

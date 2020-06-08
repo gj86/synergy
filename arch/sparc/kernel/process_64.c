@@ -58,7 +58,7 @@ static void sparc64_yield(int cpu)
 	}
 
 	clear_thread_flag(TIF_POLLING_NRFLAG);
-	smp_mb__after_clear_bit();
+	smp_mb__after_atomic();
 
 	while (!need_resched() && !cpu_is_offline(cpu)) {
 		unsigned long pstate;

@@ -177,7 +177,7 @@ static inline void clear_bit(unsigned long nr, volatile unsigned long *addr)
  */
 static inline void clear_bit_unlock(unsigned long nr, volatile unsigned long *addr)
 {
-	smp_mb__before_clear_bit();
+	smp_mb__before_atomic();
 	clear_bit(nr, addr);
 }
 

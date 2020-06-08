@@ -84,7 +84,7 @@ void default_idle(void)
 		local_irq_enable();
 	} else {
 		clear_thread_flag(TIF_POLLING_NRFLAG);
-		smp_mb__after_clear_bit();
+		smp_mb__after_atomic();
 		local_irq_disable();
 		while (!need_resched())
 			cpu_sleep();

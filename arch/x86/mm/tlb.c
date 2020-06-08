@@ -163,9 +163,9 @@ void smp_invalidate_interrupt(struct pt_regs *regs)
 	}
 out:
 	ack_APIC_irq();
-	smp_mb__before_clear_bit();
+	smp_mb__before_atomic();
 	cpumask_clear_cpu(cpu, to_cpumask(f->flush_cpumask));
-	smp_mb__after_clear_bit();
+	smp_mb__after_atomic();
 	inc_irq_stat(irq_tlb_count);
 }
 

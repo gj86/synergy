@@ -554,13 +554,13 @@ static void walk_shadow_page_lockless_begin(struct kvm_vcpu *vcpu)
 	atomic_inc(&vcpu->kvm->arch.reader_counter);
 
 	/* Increase the counter before walking shadow page table */
-	smp_mb__after_atomic_inc();
+	smp_mb__after_atomic();
 }
 
 static void walk_shadow_page_lockless_end(struct kvm_vcpu *vcpu)
 {
 	/* Decrease the counter after walking shadow page table finished */
-	smp_mb__before_atomic_dec();
+	smp_mb__before_atomic();
 	atomic_dec(&vcpu->kvm->arch.reader_counter);
 	rcu_read_unlock();
 }
