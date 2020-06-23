@@ -108,11 +108,6 @@ int blkcipher_walk_done(struct blkcipher_desc *desc,
 	struct crypto_blkcipher *tfm = desc->tfm;
 	unsigned int nbytes = 0;
 
-#ifdef CONFIG_CRYPTO_FIPS
-    if (unlikely(in_fips_err())) 
-        return (-EACCES);
-#endif
-
 	if (likely(err >= 0)) {
 		unsigned int n = walk->nbytes - err;
 
@@ -243,6 +238,8 @@ static int blkcipher_walk_next(struct blkcipher_desc *desc,
 		return blkcipher_walk_done(desc, walk, -EINVAL);
 	}
 
+	bsize = min(walk->blocksize, n);
+
 	walk->flags &= ~(BLKCIPHER_WALK_SLOW | BLKCIPHER_WALK_COPY |
 			 BLKCIPHER_WALK_DIFF);
 	if (!scatterwalk_aligned(&walk->in, alignmask) ||
@@ -255,7 +252,6 @@ static int blkcipher_walk_next(struct blkcipher_desc *desc,
 		}
 	}
 
-	bsize = min(walk->blocksize, n);
 	n = scatterwalk_clamp(&walk->in, n);
 	n = scatterwalk_clamp(&walk->out, n);
 
@@ -331,20 +327,15 @@ static int blkcipher_walk_first(struct blkcipher_desc *desc,
 	struct crypto_blkcipher *tfm = desc->tfm;
 	unsigned int alignmask = crypto_blkcipher_alignmask(tfm);
 
-#ifdef CONFIG_CRYPTO_FIPS
-    if (unlikely(in_fips_err())) 
-        return (-EACCES);
-#endif
-
 	if (WARN_ON_ONCE(in_irq()))
 		return -EDEADLK;
 
-	walk->iv = desc->info;
 	walk->nbytes = walk->total;
 	if (unlikely(!walk->total))
 		return 0;
 
 	walk->buffer = NULL;
+	walk->iv = desc->info;
 	if (unlikely(((unsigned long)walk->iv & alignmask))) {
 		int err = blkcipher_copy_iv(walk, tfm, alignmask);
 		if (err)
@@ -422,10 +413,6 @@ static int async_encrypt(struct ablkcipher_request *req)
 		.flags = req->base.flags,
 	};
 
-#ifdef CONFIG_CRYPTO_FIPS
-    if (unlikely(in_fips_err())) 
-        return (-EACCES);
-#endif
 
 	return alg->encrypt(&desc, req->dst, req->src, req->nbytes);
 }
@@ -439,11 +426,6 @@ static int async_decrypt(struct ablkcipher_request *req)
 		.info = req->info,
 		.flags = req->base.flags,
 	};
-
-#ifdef CONFIG_CRYPTO_FIPS
-    if (unlikely(in_fips_err())) 
-        return (-EACCES);
-#endif
 
 	return alg->decrypt(&desc, req->dst, req->src, req->nbytes);
 }
@@ -477,6 +459,7 @@ static int crypto_init_blkcipher_ops_async(struct crypto_tfm *tfm)
 	}
 	crt->base = __crypto_ablkcipher_cast(tfm);
 	crt->ivsize = alg->ivsize;
+	crt->has_setkey = alg->max_keysize;
 
 	return 0;
 }
@@ -606,24 +589,17 @@ struct crypto_instance *skcipher_geniv_alloc(struct crypto_template *tmpl,
 	struct crypto_alg *alg;
 	int err;
 
-#ifdef CONFIG_CRYPTO_FIPS
-    if (unlikely(in_fips_err())) 
-        return ERR_PTR(-EACCES);
-#endif
-
 	algt = crypto_get_attr_type(tb);
-	err = PTR_ERR(algt);
 	if (IS_ERR(algt))
-		return ERR_PTR(err);
+		return ERR_CAST(algt);
 
 	if ((algt->type ^ (CRYPTO_ALG_TYPE_GIVCIPHER | CRYPTO_ALG_GENIV)) &
 	    algt->mask)
 		return ERR_PTR(-EINVAL);
 
 	name = crypto_attr_alg_name(tb[1]);
-	err = PTR_ERR(name);
 	if (IS_ERR(name))
-		return ERR_PTR(err);
+		return ERR_CAST(name);
 
 	inst = kzalloc(sizeof(*inst) + sizeof(*spawn), GFP_KERNEL);
 	if (!inst)
@@ -734,11 +710,6 @@ int skcipher_geniv_init(struct crypto_tfm *tfm)
 {
 	struct crypto_instance *inst = (void *)tfm->__crt_alg;
 	struct crypto_ablkcipher *cipher;
-
-#ifdef CONFIG_CRYPTO_FIPS
-    if (unlikely(in_fips_err())) 
-        return (-EACCES);
-#endif
 
 	cipher = crypto_spawn_skcipher(crypto_instance_ctx(inst));
 	if (IS_ERR(cipher))

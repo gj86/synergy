@@ -9,7 +9,6 @@
  */
 
 #include <linux/linkage.h>
-#include <asm/assembler.h>
 
 	.text
 	.fpu		crypto-neon-fp-armv8

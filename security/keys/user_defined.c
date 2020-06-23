@@ -58,13 +58,14 @@ EXPORT_SYMBOL_GPL(key_type_logon);
 /*
  * instantiate a user defined key
  */
-int user_instantiate(struct key *key, const void *data, size_t datalen)
+int user_instantiate(struct key *key, struct key_preparsed_payload *prep)
 {
 	struct user_key_payload *upayload;
+	size_t datalen = prep->datalen;
 	int ret;
 
 	ret = -EINVAL;
-	if (datalen <= 0 || datalen > 32767 || !data)
+	if (datalen <= 0 || datalen > 32767 || !prep->data)
 		goto error;
 
 	ret = key_payload_reserve(key, datalen);
@@ -78,7 +79,7 @@ int user_instantiate(struct key *key, const void *data, size_t datalen)
 
 	/* attach the data */
 	upayload->datalen = datalen;
-	memcpy(upayload->data, data, datalen);
+	memcpy(upayload->data, prep->data, datalen);
 	rcu_assign_keypointer(key, upayload);
 	ret = 0;
 
@@ -92,13 +93,14 @@ EXPORT_SYMBOL_GPL(user_instantiate);
  * update a user defined key
  * - the key's semaphore is write-locked
  */
-int user_update(struct key *key, const void *data, size_t datalen)
+int user_update(struct key *key, struct key_preparsed_payload *prep)
 {
 	struct user_key_payload *upayload, *zap;
+	size_t datalen = prep->datalen;
 	int ret;
 
 	ret = -EINVAL;
-	if (datalen <= 0 || datalen > 32767 || !data)
+	if (datalen <= 0 || datalen > 32767 || !prep->data)
 		goto error;
 
 	/* construct a replacement payload */
@@ -108,7 +110,7 @@ int user_update(struct key *key, const void *data, size_t datalen)
 		goto error;
 
 	upayload->datalen = datalen;
-	memcpy(upayload->data, data, datalen);
+	memcpy(upayload->data, prep->data, datalen);
 
 	/* check the quota and attach the new data */
 	zap = upayload;
@@ -117,10 +119,7 @@ int user_update(struct key *key, const void *data, size_t datalen)
 
 	if (ret == 0) {
 		/* attach the new data, displacing the old */
-		if (!test_bit(KEY_FLAG_NEGATIVE, &key->flags))
-			zap = key->payload.data;
-		else
-			zap = NULL;
+		zap = key->payload.data;
 		rcu_assign_keypointer(key, upayload);
 		key->expiry = 0;
 	}
@@ -170,12 +169,6 @@ void user_destroy(struct key *key)
 {
 	struct user_key_payload *upayload = key->payload.data;
 
-#ifdef CONFIG_CRYPTO_FIPS
-	if(upayload)
-	{
-		memset(upayload->data, 0, upayload->datalen);
-	}
-#endif
 	kfree(upayload);
 }
 
