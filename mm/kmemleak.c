@@ -448,7 +448,7 @@ static void free_object_rcu(struct rcu_head *rcu)
 	 * code accessing this object, hence no need for locking.
 	 */
 	hlist_for_each_entry_safe(area, tmp, &object->area_list, node) {
-		hlist_del(elem);
+		hlist_del(tmp);
 		kmem_cache_free(scan_area_cache, area);
 	}
 	kmem_cache_free(object_cache, object);
