@@ -225,8 +225,6 @@ static DEVICE_ATTR(debug_level, S_IRUGO | S_IWUSR ,
 		debug_level_show, debug_level_store);
 #endif // CONFIG_SEC_DEBUG
 
-#endif
-
 #if defined(CONFIG_MACH_APEXQ) || defined(CONFIG_MACH_AEGIS2)
 static ssize_t slideCount_show
 	(struct device *dev, struct device_attribute *attr, char *buf)
