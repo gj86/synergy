@@ -43,7 +43,7 @@ struct cpufreq_stats {
 	unsigned int last_index;
 	cputime64_t *time_in_state;
 	unsigned int *freq_table;
-#ifdef CONFIG_CPU_FREQ_STAT_DETAILS
+#ifdef CONFIG_CPU_FREQ_STAT
 	unsigned int *trans_table;
 #endif
 };
@@ -225,7 +225,7 @@ out:
 	return len;
 }
 
-#ifdef CONFIG_CPU_FREQ_STAT_DETAILS
+#ifdef CONFIG_CPU_FREQ_STAT
 static ssize_t show_trans_table(struct cpufreq_policy *policy, char *buf)
 {
 	ssize_t len = 0;
@@ -278,7 +278,7 @@ CPUFREQ_STATDEVICE_ATTR(time_in_state, 0444, show_time_in_state);
 static struct attribute *default_attrs[] = {
 	&_attr_total_trans.attr,
 	&_attr_time_in_state.attr,
-#ifdef CONFIG_CPU_FREQ_STAT_DETAILS
+#ifdef CONFIG_CPU_FREQ_STAT
 	&_attr_trans_table.attr,
 #endif
 	NULL
@@ -402,7 +402,7 @@ static int cpufreq_stats_create_table(struct cpufreq_policy *policy,
 
 	alloc_size = count * sizeof(int) + count * sizeof(cputime64_t);
 
-#ifdef CONFIG_CPU_FREQ_STAT_DETAILS
+#ifdef CONFIG_CPU_FREQ_STAT
 	alloc_size += count * count * sizeof(int);
 #endif
 	stat->max_state = count;
@@ -413,7 +413,7 @@ static int cpufreq_stats_create_table(struct cpufreq_policy *policy,
 	}
 	stat->freq_table = (unsigned int *)(stat->time_in_state + count);
 
-#ifdef CONFIG_CPU_FREQ_STAT_DETAILS
+#ifdef CONFIG_CPU_FREQ_STAT
 	stat->trans_table = stat->freq_table + count;
 #endif
 	j = 0;
@@ -646,7 +646,7 @@ static int cpufreq_stat_notifier_trans(struct notifier_block *nb,
 
 	spin_lock(&cpufreq_stats_lock);
 	stat->last_index = new_index;
-#ifdef CONFIG_CPU_FREQ_STAT_DETAILS
+#ifdef CONFIG_CPU_FREQ_STAT
 	stat->trans_table[old_index * stat->max_state + new_index]++;
 #endif
 	stat->total_trans++;
