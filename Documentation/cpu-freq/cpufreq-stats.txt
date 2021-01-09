@@ -113,7 +113,7 @@ cpufreq-stats.
 "CPU frequency translation statistics" (CONFIG_CPU_FREQ_STAT) provides the
 basic statistics which includes time_in_state and total_trans.
 
-"CPU frequency translation statistics details" (CONFIG_CPU_FREQ_STAT_DETAILS)
+"CPU frequency translation statistics details" (CONFIG_CPU_FREQ_STAT)
 provides fine grained cpufreq stats by trans_table. The reason for having a
 separate config option for trans_table is:
 - trans_table goes against the traditional /sysfs rule of one value per
