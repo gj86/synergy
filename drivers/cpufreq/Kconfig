@@ -313,7 +313,6 @@ config CPU_FREQ_GOV_INTELLIACTIVE
 config CPU_FREQ_GOV_SLIM
 	tristate "'slim' cpufreq policy governor"
 	select CPU_FREQ_TABLE
-	default y
 	help
 	  'slim' - This driver adds a dynamic cpufreq policy governor.
 
@@ -327,7 +326,6 @@ config CPU_FREQ_GOV_SLIM
 config CPU_FREQ_GOV_SMARTMAX
     tristate "'smartmax' cpufreq policy governor"
     select CPU_FREQ_TABLE
-	default y
     help
       'smartmax' combined ondemand and smartass2
           
