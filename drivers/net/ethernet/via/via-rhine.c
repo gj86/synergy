@@ -977,6 +977,9 @@ static int __devinit rhine_init_one(struct pci_dev *pdev,
 
 	rp->base = ioaddr;
 
+	u64_stats_init(&rp->tx_stats.syncp);
+	u64_stats_init(&rp->rx_stats.syncp);
+
 	/* Get chip registers into a sane state */
 	rhine_power_init(dev);
 	rhine_hw_init(dev, pioaddr);
