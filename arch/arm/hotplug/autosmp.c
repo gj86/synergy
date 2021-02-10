@@ -34,7 +34,7 @@
 #define DEBUG 0
 
 #define ASMP_TAG	"AutoSMP:"
-#define ASMP_ENABLED	true
+#define ASMP_ENABLED	false
 
 #if DEBUG
 struct asmp_cpudata_t {
