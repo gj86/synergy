@@ -45,7 +45,7 @@ unsigned int boeffla_sound_hook_taiko_write(unsigned int reg, unsigned int value
 /*****************************************/
 
 // Boeffla sound general
-#define BOEFFLA_SOUND_DEFAULT 	0
+#define BOEFFLA_SOUND_DEFAULT 	1
 #define BOEFFLA_SOUND_VERSION 	"1.0.0"
 #define DEBUG_DEFAULT 			0
 
@@ -56,7 +56,7 @@ unsigned int boeffla_sound_hook_taiko_write(unsigned int reg, unsigned int value
 #define HEADPHONE_MAX 			30
 
 // speaker levels
-#define SPEAKER_DEFAULT			0
+#define SPEAKER_DEFAULT			1
 #define SPEAKER_REG_OFFSET		-4
 #define SPEAKER_MIN 			-30
 #define SPEAKER_MAX 			30
