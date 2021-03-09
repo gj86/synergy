@@ -16,6 +16,7 @@
 #include <linux/prio_heap.h>
 #include <linux/rwsem.h>
 #include <linux/idr.h>
+#include <linux/fs.h>
 
 #ifdef CONFIG_CGROUPS
 
@@ -202,6 +203,55 @@ struct cgroup {
 	/* List of events which userspace want to receive */
 	struct list_head event_list;
 	spinlock_t event_list_lock;
+};
+
+#define MAX_CGROUP_ROOT_NAMELEN 64
+
+/* cgroupfs_root->flags */
+enum {
+	CGRP_ROOT_NOPREFIX	= (1 << 1), /* mounted subsystems have no named prefix */
+};
+
+/*
+ * A cgroupfs_root represents the root of a cgroup hierarchy,
+ * and may be associated with a superblock to form an active
+ * hierarchy
+ */
+struct cgroupfs_root {
+	struct super_block *sb;
+
+	/*
+	 * The bitmask of subsystems intended to be attached to this
+	 * hierarchy
+	 */
+	unsigned long subsys_bits;
+
+	/* Unique id for this hierarchy. */
+	int hierarchy_id;
+
+	/* The bitmask of subsystems currently attached to this hierarchy */
+	unsigned long actual_subsys_bits;
+
+	/* A list running through the attached subsystems */
+	struct list_head subsys_list;
+
+	/* The root cgroup for this hierarchy */
+	struct cgroup top_cgroup;
+
+	/* Tracks how many cgroups are currently defined in hierarchy.*/
+	int number_of_cgroups;
+
+	/* A list running through the active hierarchies */
+	struct list_head root_list;
+
+	/* Hierarchy-specific flags */
+	unsigned long flags;
+
+	/* The path to use for release notifications. */
+	char release_agent_path[PATH_MAX];
+
+	/* The name for this hierarchy - may be empty */
+	char name[MAX_CGROUP_ROOT_NAMELEN];
 };
 
 /*

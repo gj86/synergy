@@ -30,7 +30,6 @@
 #include <linux/cred.h>
 #include <linux/ctype.h>
 #include <linux/errno.h>
-#include <linux/fs.h>
 #include <linux/init_task.h>
 #include <linux/kernel.h>
 #include <linux/list.h>
@@ -92,50 +91,6 @@ static DEFINE_MUTEX(cgroup_root_mutex);
 #define SUBSYS(_x) &_x ## _subsys,
 static struct cgroup_subsys *subsys[CGROUP_SUBSYS_COUNT] = {
 #include <linux/cgroup_subsys.h>
-};
-
-#define MAX_CGROUP_ROOT_NAMELEN 64
-
-/*
- * A cgroupfs_root represents the root of a cgroup hierarchy,
- * and may be associated with a superblock to form an active
- * hierarchy
- */
-struct cgroupfs_root {
-	struct super_block *sb;
-
-	/*
-	 * The bitmask of subsystems intended to be attached to this
-	 * hierarchy
-	 */
-	unsigned long subsys_bits;
-
-	/* Unique id for this hierarchy. */
-	int hierarchy_id;
-
-	/* The bitmask of subsystems currently attached to this hierarchy */
-	unsigned long actual_subsys_bits;
-
-	/* A list running through the attached subsystems */
-	struct list_head subsys_list;
-
-	/* The root cgroup for this hierarchy */
-	struct cgroup top_cgroup;
-
-	/* Tracks how many cgroups are currently defined in hierarchy.*/
-	int number_of_cgroups;
-
-	/* A list running through the active hierarchies */
-	struct list_head root_list;
-
-	/* Hierarchy-specific flags */
-	unsigned long flags;
-
-	/* The path to use for release notifications. */
-	char release_agent_path[PATH_MAX];
-
-	/* The name for this hierarchy - may be empty */
-	char name[MAX_CGROUP_ROOT_NAMELEN];
 };
 
 /*
@@ -245,11 +200,6 @@ inline int cgroup_is_removed(const struct cgroup *cgrp)
 {
 	return test_bit(CGRP_REMOVED, &cgrp->flags);
 }
-
-/* cgroupfs_root->flags */
-enum {
-	CGRP_ROOT_NOPREFIX	= (1 << 1), /* mounted subsystems have no named prefix */
-};
 
 static int cgroup_is_releasable(const struct cgroup *cgrp)
 {
