@@ -1535,7 +1535,6 @@ static struct dentry *cgroup_mount(struct file_system_type *fs_type,
 
 		free_cg_links(&tmp_cg_links);
 
-		BUG_ON(!list_empty(&root_cgrp->sibling));
 		BUG_ON(!list_empty(&root_cgrp->children));
 		BUG_ON(root->number_of_cgroups != 1);
 
@@ -1584,7 +1583,6 @@ static void cgroup_kill_sb(struct super_block *sb) {
 
 	BUG_ON(root->number_of_cgroups != 1);
 	BUG_ON(!list_empty(&cgrp->children));
-	BUG_ON(!list_empty(&cgrp->sibling));
 
 	mutex_lock(&cgroup_mutex);
 	mutex_lock(&cgroup_root_mutex);
@@ -3848,7 +3846,7 @@ static long cgroup_create(struct cgroup *parent, struct dentry *dentry,
 	}
 
 	cgroup_lock_hierarchy(root);
-	list_add(&cgrp->sibling, &cgrp->parent->children);
+	list_add_tail_rcu(&cgrp->sibling, &cgrp->parent->children);
 	cgroup_unlock_hierarchy(root);
 	root->number_of_cgroups++;
 
@@ -3872,7 +3870,7 @@ static long cgroup_create(struct cgroup *parent, struct dentry *dentry,
  err_remove:
 
 	cgroup_lock_hierarchy(root);
-	list_del(&cgrp->sibling);
+	list_del_rcu(&cgrp->sibling);
 	cgroup_unlock_hierarchy(root);
 	root->number_of_cgroups--;
 
@@ -4094,7 +4092,7 @@ again:
 
 	cgroup_lock_hierarchy(cgrp->root);
 	/* delete this cgroup from parent->children */
-	list_del_init(&cgrp->sibling);
+	list_del_rcu(&cgrp->sibling);
 	cgroup_unlock_hierarchy(cgrp->root);
 
 	d = dget(cgrp->dentry);
