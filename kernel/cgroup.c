@@ -246,9 +246,9 @@ inline int cgroup_is_removed(const struct cgroup *cgrp)
 	return test_bit(CGRP_REMOVED, &cgrp->flags);
 }
 
-/* bits in struct cgroupfs_root flags field */
+/* cgroupfs_root->flags */
 enum {
-	ROOT_NOPREFIX, /* mounted subsystems have no named prefix */
+	CGRP_ROOT_NOPREFIX	= (1 << 1), /* mounted subsystems have no named prefix */
 };
 
 static int cgroup_is_releasable(const struct cgroup *cgrp)
@@ -1055,7 +1055,7 @@ static int cgroup_show_options(struct seq_file *seq, struct dentry *dentry)
 	mutex_lock(&cgroup_root_mutex);
 	for_each_subsys(root, ss)
 		seq_show_option(seq, ss->name, NULL);
-	if (test_bit(ROOT_NOPREFIX, &root->flags))
+	if (root->flags & CGRP_ROOT_NOPREFIX)
 		seq_puts(seq, ",noprefix");
 	if (strlen(root->release_agent_path))
 		seq_show_option(seq, "release_agent",
@@ -1119,7 +1119,7 @@ static int parse_cgroupfs_options(char *data, struct cgroup_sb_opts *opts)
 			continue;
 		}
 		if (!strcmp(token, "noprefix")) {
-			set_bit(ROOT_NOPREFIX, &opts->flags);
+			opts->flags |= CGRP_ROOT_NOPREFIX;
 			continue;
 		}
 		if (!strcmp(token, "clone_children")) {
@@ -1206,8 +1206,7 @@ static int parse_cgroupfs_options(char *data, struct cgroup_sb_opts *opts)
 	 * with the old cpuset, so we allow noprefix only if mounting just
 	 * the cpuset subsystem.
 	 */
-	if (test_bit(ROOT_NOPREFIX, &opts->flags) &&
-	    (opts->subsys_bits & mask))
+	if ((opts->flags & CGRP_ROOT_NOPREFIX) && (opts->subsys_mask & mask))
 		return -EINVAL;
 
 
@@ -2642,7 +2641,7 @@ int cgroup_add_file(struct cgroup *cgrp,
 	umode_t mode;
 
 	char name[MAX_CGROUP_TYPE_NAMELEN + MAX_CFTYPE_NAME + 2] = { 0 };
-	if (subsys && !test_bit(ROOT_NOPREFIX, &cgrp->root->flags)) {
+	if (subsys && !(cgrp->root->flags & CGRP_ROOT_NOPREFIX)) {
 		strcpy(name, subsys->name);
 		strcat(name, ".");
 	}
