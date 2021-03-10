@@ -517,11 +517,11 @@ out:
 #ifdef CONFIG_SMP
 /*
  * Helper routine for generate_sched_domains().
- * Do cpusets a, b have overlapping cpus_allowed masks?
+ * Do cpusets a, b have overlapping effective cpus_allowed masks?
  */
 static int cpusets_overlap(struct cpuset *a, struct cpuset *b)
 {
-	return cpumask_intersects(a->cpus_allowed, b->cpus_allowed);
+	return cpumask_intersects(a->effective_cpus, b->effective_cpus);
 }
 
 static void
@@ -632,7 +632,7 @@ static int generate_sched_domains(cpumask_var_t **domains,
 			*dattr = SD_ATTR_INIT;
 			update_domain_attr_tree(dattr, &top_cpuset);
 		}
-		cpumask_copy(doms[0], top_cpuset.cpus_allowed);
+		cpumask_copy(doms[0], top_cpuset.effective_cpus);
 
 		goto done;
 	}
@@ -737,7 +737,7 @@ restart:
 			struct cpuset *b = csa[j];
 
 			if (apn == b->pn) {
-				cpumask_or(dp, dp, b->cpus_allowed);
+				cpumask_or(dp, dp, b->effective_cpus);
 				if (dattr)
 					update_domain_attr_tree(dattr + nslot, b);
 
@@ -918,6 +918,7 @@ static void update_cpumasks_hier(struct cpuset *cs, struct cpuset *trialcs,
 {
 	struct cgroup *pos_cgrp;
 	struct cpuset *cp;
+	bool need_rebuild_sched_domains = false;
 
 	rcu_read_lock();
 	cpuset_for_each_descendant_pre(cp, pos_cgrp, cs) {
@@ -955,10 +956,22 @@ static void update_cpumasks_hier(struct cpuset *cs, struct cpuset *trialcs,
 
 		update_tasks_cpumask(cp, heap);
 
+		/*
+		 * If the effective cpumask of any non-empty cpuset is
+		 * changed, we need to rebuild sched domains.
+		 */
+		if (!cpumask_empty(cp->cpus_allowed) &&
+		    is_sched_load_balance(cp))
+			need_rebuild_sched_domains = true;
+
+
 		rcu_read_lock();
 		css_put(&cp->css);
 	}
 	rcu_read_unlock();
+
+	if (need_rebuild_sched_domains)
+		rebuild_sched_domains_locked();
 }
 
 
@@ -1015,9 +1028,6 @@ static int update_cpumask(struct cpuset *cs, struct cpuset *trialcs,
 	update_cpumasks_hier(cs, trialcs, &heap);
 
 	heap_free(&heap);
-
-	if (is_sched_load_balance(cs))
-		rebuild_sched_domains_locked();
 	return 0;
 }
 
