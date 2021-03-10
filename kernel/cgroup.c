@@ -1005,9 +1005,9 @@ static int cgroup_show_options(struct seq_file *seq, struct dentry *dentry)
 	mutex_lock(&cgroup_root_mutex);
 	for_each_subsys(root, ss)
 		seq_show_option(seq, ss->name, NULL);
-	if (root->flags & CGRP_ROOT_SANE_BEHAVIOR)
+	if (test_bit(CGRP_ROOT_SANE_BEHAVIOR, &root->flags))
 		seq_puts(seq, ",sane_behavior");
-	if (root->flags & CGRP_ROOT_NOPREFIX)
+	if (test_bit(CGRP_ROOT_NOPREFIX, &root->flags))
 		seq_puts(seq, ",noprefix");
 	if (strlen(root->release_agent_path))
 		seq_show_option(seq, "release_agent",
@@ -1071,11 +1071,11 @@ static int parse_cgroupfs_options(char *data, struct cgroup_sb_opts *opts)
 			continue;
 		}
 		if (!strcmp(token, "__DEVEL__sane_behavior")) {
-			opts->flags |= CGRP_ROOT_SANE_BEHAVIOR;
+			set_bit(CGRP_ROOT_SANE_BEHAVIOR, &opts->flags);
 			continue;
 		}
 		if (!strcmp(token, "noprefix")) {
-			opts->flags |= CGRP_ROOT_NOPREFIX;
+			set_bit(CGRP_ROOT_NOPREFIX, &opts->flags);
 			continue;
 		}
 		if (!strcmp(token, "clone_children")) {
@@ -1157,10 +1157,10 @@ static int parse_cgroupfs_options(char *data, struct cgroup_sb_opts *opts)
 
 	/* Consistency checks */
 
-	if (opts->flags & CGRP_ROOT_SANE_BEHAVIOR) {
+	if (test_bit(CGRP_ROOT_SANE_BEHAVIOR, &opts->flags)) {
 		pr_warning("cgroup: sane_behavior: this is still under development and its behaviors will change, proceed at your own risk\n");
 
-		if (opts->flags & CGRP_ROOT_NOPREFIX) {
+		if (test_bit(CGRP_ROOT_NOPREFIX, &opts->flags)) {
 			pr_err("cgroup: sane_behavior: noprefix is not allowed\n");
 			return -EINVAL;
 		}
@@ -1176,7 +1176,8 @@ static int parse_cgroupfs_options(char *data, struct cgroup_sb_opts *opts)
 	 * with the old cpuset, so we allow noprefix only if mounting just
 	 * the cpuset subsystem.
 	 */
-	if ((opts->flags & CGRP_ROOT_NOPREFIX) && (opts->subsys_bits & mask))
+	if (test_bit(CGRP_ROOT_NOPREFIX, &opts->flags) &&
+	    (opts->subsys_bits & mask))
 		return -EINVAL;
 
 
@@ -2629,7 +2630,7 @@ int cgroup_add_file(struct cgroup *cgrp,
 	umode_t mode;
 
 	char name[MAX_CGROUP_TYPE_NAMELEN + MAX_CFTYPE_NAME + 2] = { 0 };
-	if (subsys && !(cgrp->root->flags & CGRP_ROOT_NOPREFIX)) {
+	if (subsys && !test_bit(CGRP_ROOT_NOPREFIX, &cgrp->root->flags)) {
 		strcpy(name, subsys->name);
 		strcat(name, ".");
 	}

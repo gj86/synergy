@@ -208,7 +208,7 @@ struct cgroup {
 
 #define MAX_CGROUP_ROOT_NAMELEN 64
 
-/* cgroupfs_root->flags */
+/* bits in struct cgroupfs_root flags field */
 enum {
 	/*
 	 * Unfortunately, cgroup core and various controllers are riddled
@@ -239,10 +239,9 @@ enum {
 	 * - release_agent will be disallowed once replacement notification
 	 *   mechanism is implemented.
 	 */
-	CGRP_ROOT_SANE_BEHAVIOR	= (1 << 0),
-
-	CGRP_ROOT_NOPREFIX	= (1 << 1), /* mounted subsystems have no named prefix */
-	CGRP_ROOT_XATTR		= (1 << 2), /* supports extended attributes */
+	CGRP_ROOT_SANE_BEHAVIOR,
+	CGRP_ROOT_NOPREFIX, /* mounted subsystems have no named prefix */
+	CGRP_ROOT_XATTR, /* supports extended attributes */
 };
 
 /*
