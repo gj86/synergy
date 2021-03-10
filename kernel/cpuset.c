@@ -2273,6 +2273,65 @@ static void remove_tasks_in_empty_cpuset(struct cpuset *cs)
 	move_member_tasks_to_cpuset(cs, parent);
 }
 
+static void hotplug_update_tasks_insane(struct cpuset *cs,
+					struct cpumask *off_cpus,
+					nodemask_t *off_mems)
+{
+	bool is_empty;
+
+	mutex_lock(&callback_mutex);
+	cpumask_andnot(cs->cpus_allowed, cs->cpus_allowed, off_cpus);
+	cpumask_andnot(cs->effective_cpus, cs->effective_cpus, off_cpus);
+	nodes_andnot(cs->mems_allowed, cs->mems_allowed, *off_mems);
+	nodes_andnot(cs->effective_mems, cs->effective_mems, *off_mems);
+	mutex_unlock(&callback_mutex);
+
+	/*
+	 * Don't call update_tasks_cpumask() if the cpuset becomes empty,
+	 * as the tasks will be migratecd to an ancestor.
+	 */
+	if (!cpumask_empty(off_cpus) && !cpumask_empty(cs->cpus_allowed))
+		update_tasks_cpumask(cs, NULL);
+	if (!nodes_empty(*off_mems) && !nodes_empty(cs->mems_allowed))
+		update_tasks_nodemask(cs, NULL);
+
+	is_empty = cpumask_empty(cs->cpus_allowed) ||
+		   nodes_empty(cs->mems_allowed);
+
+	mutex_unlock(&cpuset_mutex);
+
+	/*
+	 * Move tasks to the nearest ancestor with execution resources,
+	 * This is full cgroup operation which will also call back into
+	 * cpuset. Should be done outside any lock.
+	 */
+	if (is_empty)
+		remove_tasks_in_empty_cpuset(cs);
+
+	mutex_lock(&cpuset_mutex);
+}
+
+static void hotplug_update_tasks_sane(struct cpuset *cs,
+				      struct cpumask *off_cpus,
+				      nodemask_t *off_mems)
+{
+	mutex_lock(&callback_mutex);
+	cpumask_andnot(cs->effective_cpus, cs->effective_cpus, off_cpus);
+	if (cpumask_empty(cs->effective_cpus))
+		cpumask_copy(cs->effective_cpus,
+			     parent_cs(cs)->effective_cpus);
+
+	nodes_andnot(cs->effective_mems, cs->effective_mems, *off_mems);
+	if (nodes_empty(cs->effective_mems))
+		cs->effective_mems = parent_cs(cs)->effective_mems;
+	mutex_unlock(&callback_mutex);
+
+	if (!cpumask_empty(off_cpus))
+		update_tasks_cpumask(cs, NULL);
+	if (!nodes_empty(*off_mems))
+		update_tasks_nodemask(cs, NULL);
+}
+
  /**
  * cpuset_hotplug_update_tasks - update tasks in a cpuset for hotunplug
  * @cs: cpuset in interest
@@ -2285,8 +2344,6 @@ static void cpuset_hotplug_update_tasks(struct cpuset *cs)
 {
 	static cpumask_t off_cpus;
 	static nodemask_t off_mems;
-	bool is_empty;
-	bool sane = cgroup_sane_behavior(cs->css.cgroup);
 
 retry:
 	wait_event(cpuset_attach_wq, cs->attach_in_progress == 0);
@@ -2305,58 +2362,10 @@ retry:
 	cpumask_andnot(&off_cpus, cs->effective_cpus, top_cpuset.effective_cpus);
 	nodes_andnot(off_mems, cs->effective_mems, top_cpuset.effective_mems);
 
-	mutex_lock(&callback_mutex);
-	if (!sane)
-		cpumask_andnot(cs->cpus_allowed, cs->cpus_allowed, &off_cpus);
-
-	/* Inherit the effective mask of the parent, if it becomes empty. */
-	cpumask_andnot(cs->effective_cpus, cs->effective_cpus, &off_cpus);
-	if (sane && cpumask_empty(cs->effective_cpus))
-		cpumask_copy(cs->effective_cpus, parent_cs(cs)->effective_cpus);
-	mutex_unlock(&callback_mutex);
-
-	/*
-	 * If sane_behavior flag is set, we need to update tasks' cpumask
-	 * for empty cpuset to take on ancestor's cpumask. Otherwise, don't
-	 * call update_tasks_cpumask() if the cpuset becomes empty, as
-	 * the tasks in it will be migrated to an ancestor.
-	 */
-	if ((sane && cpumask_empty(cs->cpus_allowed)) ||
-	    (!cpumask_empty(&off_cpus) && !cpumask_empty(cs->cpus_allowed)))
-			update_tasks_cpumask(cs, NULL);
-
-	mutex_lock(&callback_mutex);
-	if (!sane)
-		nodes_andnot(cs->mems_allowed, cs->mems_allowed, off_mems);
-
-	/* Inherit the effective mask of the parent, if it becomes empty */
- 	nodes_andnot(cs->effective_mems, cs->effective_mems, off_mems);
-	if (sane && nodes_empty(cs->effective_mems))
-		cs->effective_mems = parent_cs(cs)->effective_mems;
-	mutex_unlock(&callback_mutex);
-
-	/*
-	 * If sane_behavior flag is set, we need to update tasks' nodemask
-	 * for empty cpuset to take on ancestor's nodemask. Otherwise, don't
-	 * call update_tasks_nodemask() if the cpuset becomes empty, as
-	 * the tasks in it will be migratd to an ancestor.
-	 */
-	if ((sane && nodes_empty(cs->mems_allowed)) ||
-	    (!nodes_empty(off_mems) && !nodes_empty(cs->mems_allowed)))
-		update_tasks_nodemask(cs, NULL);
-
-	is_empty = cpumask_empty(cs->cpus_allowed) ||
-		nodes_empty(cs->mems_allowed);
-
-	/*
-	 * If sane_behavior flag is set, we'll keep tasks in empty cpusets.
-	 *
-	 * Otherwise move tasks to the nearest ancestor with execution
-	 * resources.  This is full cgroup operation which will
-	 * also call back into cpuset.  Should be done outside any lock.
-	 */
-	if (!sane && is_empty)
-		remove_tasks_in_empty_cpuset(cs);
+    if (cgroup_sane_behavior(cs->css.cgroup))
+		hotplug_update_tasks_sane(cs, &off_cpus, &off_mems);
+	else
+		hotplug_update_tasks_insane(cs, &off_cpus, &off_mems);
 
 	mutex_unlock(&cpuset_mutex);
 }
