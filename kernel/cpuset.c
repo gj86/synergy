@@ -1665,6 +1665,8 @@ typedef enum {
 	FILE_MEMORY_MIGRATE,
 	FILE_CPULIST,
 	FILE_MEMLIST,
+	FILE_EFFECTIVE_CPULIST,
+	FILE_EFFECTIVE_MEMLIST,
 	FILE_CPU_EXCLUSIVE,
 	FILE_MEM_EXCLUSIVE,
 	FILE_MEM_HARDWALL,
@@ -1811,23 +1813,23 @@ out_unlock:
  * across a page fault.
  */
 
-static size_t cpuset_sprintf_cpulist(char *page, struct cpuset *cs)
+static size_t cpuset_sprintf_cpulist(char *page, struct cpumask *pmask)
 {
 	size_t count;
 
 	mutex_lock(&callback_mutex);
-	count = cpulist_scnprintf(page, PAGE_SIZE, cs->cpus_allowed);
+	count = cpulist_scnprintf(page, PAGE_SIZE, pmask);
 	mutex_unlock(&callback_mutex);
 
 	return count;
 }
 
-static size_t cpuset_sprintf_memlist(char *page, struct cpuset *cs)
+static size_t cpuset_sprintf_memlist(char *page, nodemask_t mask)
 {
 	size_t count;
 
 	mutex_lock(&callback_mutex);
-	count = nodelist_scnprintf(page, PAGE_SIZE, cs->mems_allowed);
+	count = nodelist_scnprintf(page, PAGE_SIZE, mask);
 	mutex_unlock(&callback_mutex);
 
 	return count;
@@ -1852,10 +1854,16 @@ static ssize_t cpuset_common_file_read(struct cgroup *cgrp,
 
 	switch (type) {
 	case FILE_CPULIST:
-		s += cpuset_sprintf_cpulist(s, cs);
+		s += cpuset_sprintf_cpulist(s, cs->cpus_allowed);
 		break;
 	case FILE_MEMLIST:
-		s += cpuset_sprintf_memlist(s, cs);
+		s += cpuset_sprintf_memlist(s, cs->mems_allowed);
+		break;
+	case FILE_EFFECTIVE_CPULIST:
+		s += cpuset_sprintf_cpulist(s, cs->effective_cpus);
+		break;
+	case FILE_EFFECTIVE_MEMLIST:
+		s += cpuset_sprintf_memlist(s, cs->effective_mems);
 		break;
 	default:
 		retval = -EINVAL;
@@ -1930,11 +1938,25 @@ static struct cftype files[] = {
 	},
 
 	{
+		.name = "effective_cpus",
+		.read = cpuset_common_file_read,
+		.max_write_len = (100U + 6 * NR_CPUS),
+		.private = FILE_EFFECTIVE_CPULIST,
+	},
+
+	{
 		.name = "mems",
 		.read = cpuset_common_file_read,
 		.write_string = cpuset_write_resmask,
 		.max_write_len = (100U + 6 * MAX_NUMNODES),
 		.private = FILE_MEMLIST,
+	},
+
+	{
+		.name = "effective_mems",
+		.read = cpuset_common_file_read,
+		.max_write_len = (100U + 6 * MAX_NUMNODES),
+		.private = FILE_EFFECTIVE_MEMLIST,
 	},
 
 	{
