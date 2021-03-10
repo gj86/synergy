@@ -924,16 +924,22 @@ static void update_cpumasks_hier(struct cpuset *cs, struct cpuset *trialcs,
 		struct cpuset *parent = parent_cs(cp);
 		struct cpumask *new_cpus = trialcs->effective_cpus;
 
-		cpumask_and(new_cpus, cp->cpus_allowed,
-			    parent->effective_cpus);
+		/*
+		 * If !sane_behavior, new_cpus will equals cpus_allowed,
+		 * which is not empty, so it's guaranteed the effective mask
+		 * is the same with the configured mask.
+		 */
+		cpumask_and(new_cpus, cp->cpus_allowed, parent->effective_cpus);
 
 		/*
-		 * Skip the whole subtree if the cpumask remains the same
-		 * and isn't empty. If it's empty, we need to update tasks
-		 * to take on an ancestor's cpumask.
+		 * If it becomes empty, inherit the effective mask of the
+		 * parent, which is guaranteed to have some CPUs.
 		 */
-		if (cpumask_equal(new_cpus, cp->effective_cpus) &&
-		    ((cp == cs) || !cpumask_empty(new_cpus))) {
+		if (cpumask_empty(new_cpus))
+			cpumask_copy(new_cpus, parent->effective_cpus);
+
+		/* Skip the whole subtree if the cpumask remains the same. */
+		if (cpumask_equal(new_cpus, cp->effective_cpus)) {
 			pos_cgrp = cgroup_rightmost_descendant(pos_cgrp);
 			continue;
  		}
@@ -1196,16 +1202,22 @@ static void update_nodemasks_hier(struct cpuset *cs, struct cpuset *trialcs,
 		struct cpuset *parent = parent_cs(cp);
 		nodemask_t *new_mems = &trialcs->effective_mems;
 
-		nodes_and(*new_mems, cp->mems_allowed,
-			  parent->effective_mems);
+		/*
+		 * If !sane_behavior, new_mems will equal mems_allowed,
+		 * which is not empty, so it's guaranteed the effective mask
+		 * is the same with the configured mask.
+		 */
+		nodes_and(*new_mems, cp->mems_allowed, parent->effective_mems);
 
 		/*
-		 * Skip the whole subtree if the nodemask remains the same
-		 * and isn't empty. If it's empty, we need to update tasks
-		 * to take on an ancestor's nodemask.
+		 * If it becomes empty, inherit the effective mask of the
+		 * parent, which is guaranteed to have some MEMs.
 		 */
-		if (nodes_equal(*new_mems, cp->effective_mems) &&
-		    ((cp == cs) || !nodes_empty(*new_mems))) {
+		if (nodes_empty(*new_mems))
+			*new_mems = parent->effective_mems;
+
+		/* Skip the whole subtree if the nodemask is not changed. */
+		if (nodes_equal(*new_mems, cp->effective_mems)) {
 			pos_cgrp = cgroup_rightmost_descendant(pos_cgrp);
 			continue;
 		}
@@ -2288,7 +2300,11 @@ retry:
 
 	mutex_lock(&callback_mutex);
 	cpumask_andnot(cs->cpus_allowed, cs->cpus_allowed, &off_cpus);
+
+	/* Inherit the effective mask of the parent, if it becomes empty. */
 	cpumask_andnot(cs->effective_cpus, cs->effective_cpus, &off_cpus);
+	if (sane && cpumask_empty(cs->effective_cpus))
+		cpumask_copy(cs->effective_cpus, parent_cs(cs)->effective_cpus);
 	mutex_unlock(&callback_mutex);
 
 	/*
@@ -2303,7 +2319,11 @@ retry:
 
 	mutex_lock(&callback_mutex);
 	nodes_andnot(cs->mems_allowed, cs->mems_allowed, off_mems);
-	nodes_andnot(cs->effective_mems, cs->effective_mems, off_mems);
+
+	/* Inherit the effective mask of the parent, if it becomes empty */
+ 	nodes_andnot(cs->effective_mems, cs->effective_mems, off_mems);
+	if (sane && nodes_empty(cs->effective_mems))
+		cs->effective_mems = parent_cs(cs)->effective_mems;
 	mutex_unlock(&callback_mutex);
 
 	/*
