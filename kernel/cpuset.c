@@ -904,36 +904,48 @@ static void update_tasks_cpumask(struct cpuset *cs, struct ptr_heap *heap)
 	cgroup_scan_tasks(&scan);
 }
 
-/*
- * update_tasks_cpumask_hier - Update the cpumasks of tasks in the hierarchy.
- * @root_cs: the root cpuset of the hierarchy
- * @update_root: update root cpuset or not?
+/**
+ * update_cpumasks_hier - Update effective cpumasks and tasks in the subtree
+ * @cs: the cpuset to consider
+ * @trialcs: the trial cpuset
  * @heap: the heap used by cgroup_scan_tasks()
  *
- * This will update cpumasks of tasks in @root_cs and all other empty cpusets
- * which take on cpumask of @root_cs.
- *
- * Called with cpuset_mutex held
+ * When configured cpumask is changed, the effective cpumasks of this cpuset
+ * and all its descendants need to be updated.
  */
-static void update_tasks_cpumask_hier(struct cpuset *root_cs,
-				      bool update_root, struct ptr_heap *heap)
+static void update_cpumasks_hier(struct cpuset *cs, struct cpuset *trialcs,
+				 struct ptr_heap *heap)
 {
-	struct cpuset *cp;
 	struct cgroup *pos_cgrp;
-
-	if (update_root)
-		update_tasks_cpumask(root_cs, heap);
+	struct cpuset *cp;
 
 	rcu_read_lock();
-	cpuset_for_each_descendant_pre(cp, pos_cgrp, root_cs) {
-		/* skip the whole subtree if @cp have some CPU */
-		if (!cpumask_empty(cp->cpus_allowed)) {
+	cpuset_for_each_descendant_pre(cp, pos_cgrp, cs) {
+		struct cpuset *parent = parent_cs(cp);
+		struct cpumask *new_cpus = trialcs->effective_cpus;
+
+		cpumask_and(new_cpus, cp->cpus_allowed,
+			    parent->effective_cpus);
+
+		/*
+		 * Skip the whole subtree if the cpumask remains the same
+		 * and isn't empty. If it's empty, we need to update tasks
+		 * to take on an ancestor's cpumask.
+		 */
+		if (cpumask_equal(new_cpus, cp->effective_cpus) &&
+		    ((cp == cs) || !cpumask_empty(new_cpus))) {
 			pos_cgrp = cgroup_rightmost_descendant(pos_cgrp);
 			continue;
-		}
+ 		}
+
 		if (!css_tryget(&cp->css))
 			continue;
+
 		rcu_read_unlock();
+
+		mutex_lock(&callback_mutex);
+		cpumask_copy(cp->effective_cpus, new_cpus);
+		mutex_unlock(&callback_mutex);
 
 		update_tasks_cpumask(cp, heap);
 
@@ -954,7 +966,6 @@ static int update_cpumask(struct cpuset *cs, struct cpuset *trialcs,
 {
 	struct ptr_heap heap;
 	int retval;
-	int is_load_balanced;
 
 	/* top_cpuset.cpus_allowed tracks cpu_online_mask; it's read-only */
 	if (cs == &top_cpuset)
@@ -991,17 +1002,15 @@ static int update_cpumask(struct cpuset *cs, struct cpuset *trialcs,
 	if (retval)
 		return retval;
 
-	is_load_balanced = is_sched_load_balance(trialcs);
-
 	mutex_lock(&callback_mutex);
 	cpumask_copy(cs->cpus_allowed, trialcs->cpus_allowed);
 	mutex_unlock(&callback_mutex);
 
-	update_tasks_cpumask_hier(cs, true, &heap);
+	update_cpumasks_hier(cs, trialcs, &heap);
 
 	heap_free(&heap);
 
-	if (is_load_balanced)
+	if (is_sched_load_balance(cs))
 		rebuild_sched_domains_locked();
 	return 0;
 }
@@ -1167,38 +1176,49 @@ static void update_tasks_nodemask(struct cpuset *cs, struct ptr_heap *heap)
 	/* We're done rebinding vmas to this cpuset's new mems_allowed. */
 	cpuset_being_rebound = NULL;
 }
-/*
- * update_tasks_nodemask_hier - Update the nodemasks of tasks in the hierarchy.
- * @cs: the root cpuset of the hierarchy
- * @update_root: update the root cpuset or not?
- * @heap: the heap used by cgroup_scan_tasks()
+/**
+ * update_nodesmasks_hier - Update effective nodemasks and tasks in the subtree
+ * @cs: the cpuset to consider
+ * @trialcs: the trial cpuset
+ * @heap: the heap used by css_scan_tasks()
  *
- * This will update nodemasks of tasks in @root_cs and all other empty cpusets
- * which take on nodemask of @root_cs.
- *
- * Called with cpuset_mutex held
+ * When configured nodemask is changed, the effective nodemasks of this cpuset
+ * and all its descendants need to be updated.
  */
-static void update_tasks_nodemask_hier(struct cpuset *root_cs,
-				       bool update_root, struct ptr_heap *heap)
+static void update_nodemasks_hier(struct cpuset *cs, struct cpuset *trialcs,
+				 struct ptr_heap *heap)
 {
-	struct cpuset *cp;
 	struct cgroup *pos_cgrp;
-
-	if (update_root)
-		update_tasks_nodemask(root_cs, heap);
+	struct cpuset *cp;
 
 	rcu_read_lock();
-	cpuset_for_each_descendant_pre(cp, pos_cgrp, root_cs) {
-		/* skip the whole subtree if @cp have some CPU */
-		if (!nodes_empty(cp->mems_allowed)) {
+	cpuset_for_each_descendant_pre(cp, pos_cgrp, cs) {
+		struct cpuset *parent = parent_cs(cp);
+		nodemask_t *new_mems = &trialcs->effective_mems;
+
+		nodes_and(*new_mems, cp->mems_allowed,
+			  parent->effective_mems);
+
+		/*
+		 * Skip the whole subtree if the nodemask remains the same
+		 * and isn't empty. If it's empty, we need to update tasks
+		 * to take on an ancestor's nodemask.
+		 */
+		if (nodes_equal(*new_mems, cp->effective_mems) &&
+		    ((cp == cs) || !nodes_empty(*new_mems))) {
 			pos_cgrp = cgroup_rightmost_descendant(pos_cgrp);
 			continue;
 		}
+
 		if (!css_tryget(&cp->css))
 			continue;
 		rcu_read_unlock();
 
-		update_tasks_nodemask(cp, heap);
+		mutex_lock(&callback_mutex);
+		cp->effective_mems = *new_mems;
+		mutex_unlock(&callback_mutex);
+
+		update_tasks_cpumask(cp, heap);
 
 		rcu_read_lock();
 		css_put(&cp->css);
@@ -1270,7 +1290,7 @@ static int update_nodemask(struct cpuset *cs, struct cpuset *trialcs,
 	cs->mems_allowed = trialcs->mems_allowed;
 	mutex_unlock(&callback_mutex);
 
-	update_tasks_nodemask_hier(cs, true, &heap);
+	update_nodemasks_hier(cs, trialcs, &heap);
 
 	heap_free(&heap);
 done:
