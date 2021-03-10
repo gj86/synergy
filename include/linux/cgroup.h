@@ -150,7 +150,7 @@ enum {
 	/*
 	 * Clone cgroup values when creating a new child cgroup
 	 */
-	CGRP_CLONE_CHILDREN,
+	CGRP_CPUSET_CLONE_CHILDREN,
 };
 
 struct cgroup {
@@ -210,7 +210,39 @@ struct cgroup {
 
 /* cgroupfs_root->flags */
 enum {
+	/*
+	 * Unfortunately, cgroup core and various controllers are riddled
+	 * with idiosyncrasies and pointless options.  The following flag,
+	 * when set, will force sane behavior - some options are forced on,
+	 * others are disallowed, and some controllers will change their
+	 * hierarchical or other behaviors.
+	 *
+	 * The set of behaviors affected by this flag are still being
+	 * determined and developed and the mount option for this flag is
+	 * prefixed with __DEVEL__.  The prefix will be dropped once we
+	 * reach the point where all behaviors are compatible with the
+	 * planned unified hierarchy, which will automatically turn on this
+	 * flag.
+	 *
+	 * The followings are the behaviors currently affected this flag.
+	 *
+	 * - Mount options "noprefix" and "clone_children" are disallowed.
+	 *   Also, cgroupfs file cgroup.clone_children is not created.
+	 *
+	 * - When mounting an existing superblock, mount options should
+	 *   match.
+	 *
+	 * - Remount is disallowed.
+	 *
+	 * The followings are planned changes.
+	 *
+	 * - release_agent will be disallowed once replacement notification
+	 *   mechanism is implemented.
+	 */
+	CGRP_ROOT_SANE_BEHAVIOR	= (1 << 0),
+
 	CGRP_ROOT_NOPREFIX	= (1 << 1), /* mounted subsystems have no named prefix */
+	CGRP_ROOT_XATTR		= (1 << 2), /* supports extended attributes */
 };
 
 /*
@@ -426,6 +458,15 @@ struct cgroup_scanner {
 };
 
 /*
+ * See the comment above CGRP_ROOT_SANE_BEHAVIOR for details.  This
+ * function can be called as long as @cgrp is accessible.
+ */
+static inline bool cgroup_sane_behavior(const struct cgroup *cgrp)
+{
+	return cgrp->root->flags & CGRP_ROOT_SANE_BEHAVIOR;
+}
+
+/*
  * Add a new file to the given cgroup directory. Should only be
  * called by subsystems from within a populate() method
  */
@@ -636,6 +677,7 @@ static inline struct cgroup* task_cgroup(struct task_struct *task,
 
 struct cgroup *cgroup_next_descendant_pre(struct cgroup *pos,
 					  struct cgroup *cgroup);
+struct cgroup *cgroup_rightmost_descendant(struct cgroup *pos);
 
 /**
  * cgroup_for_each_descendant_pre - pre-order walk of a cgroup's descendants

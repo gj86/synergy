@@ -216,7 +216,7 @@ static int notify_on_release(const struct cgroup *cgrp)
 
 static int clone_children(const struct cgroup *cgrp)
 {
-	return test_bit(CGRP_CLONE_CHILDREN, &cgrp->flags);
+	return test_bit(CGRP_CPUSET_CLONE_CHILDREN, &cgrp->flags);
 }
 
 /*
@@ -1005,6 +1005,8 @@ static int cgroup_show_options(struct seq_file *seq, struct dentry *dentry)
 	mutex_lock(&cgroup_root_mutex);
 	for_each_subsys(root, ss)
 		seq_show_option(seq, ss->name, NULL);
+	if (root->flags & CGRP_ROOT_SANE_BEHAVIOR)
+		seq_puts(seq, ",sane_behavior");
 	if (root->flags & CGRP_ROOT_NOPREFIX)
 		seq_puts(seq, ",noprefix");
 	if (strlen(root->release_agent_path))
@@ -1066,6 +1068,10 @@ static int parse_cgroupfs_options(char *data, struct cgroup_sb_opts *opts)
 			if (one_ss)
 				return -EINVAL;
 			all_ss = true;
+			continue;
+		}
+		if (!strcmp(token, "__DEVEL__sane_behavior")) {
+			opts->flags |= CGRP_ROOT_SANE_BEHAVIOR;
 			continue;
 		}
 		if (!strcmp(token, "noprefix")) {
@@ -1151,12 +1157,26 @@ static int parse_cgroupfs_options(char *data, struct cgroup_sb_opts *opts)
 
 	/* Consistency checks */
 
+	if (opts->flags & CGRP_ROOT_SANE_BEHAVIOR) {
+		pr_warning("cgroup: sane_behavior: this is still under development and its behaviors will change, proceed at your own risk\n");
+
+		if (opts->flags & CGRP_ROOT_NOPREFIX) {
+			pr_err("cgroup: sane_behavior: noprefix is not allowed\n");
+			return -EINVAL;
+		}
+
+		if (opts->clone_children) {
+			pr_err("cgroup: sane_behavior: clone_children is not allowed\n");
+			return -EINVAL;
+		}
+	}
+
 	/*
 	 * Option noprefix was introduced just for backward compatibility
 	 * with the old cpuset, so we allow noprefix only if mounting just
 	 * the cpuset subsystem.
 	 */
-	if ((opts->flags & CGRP_ROOT_NOPREFIX) && (opts->subsys_mask & mask))
+	if ((opts->flags & CGRP_ROOT_NOPREFIX) && (opts->subsys_bits & mask))
 		return -EINVAL;
 
 
@@ -1225,6 +1245,11 @@ static int cgroup_remount(struct super_block *sb, int *flags, char *data)
 	struct cgroupfs_root *root = sb->s_fs_info;
 	struct cgroup *cgrp = &root->top_cgroup;
 	struct cgroup_sb_opts opts;
+
+	if (root->flags & CGRP_ROOT_SANE_BEHAVIOR) {
+		pr_err("cgroup: sane_behavior: remount is not allowed\n");
+		return -EINVAL;
+	}
 
 	mutex_lock(&cgrp->dentry->d_inode->i_mutex);
 	mutex_lock(&cgroup_mutex);
@@ -1362,7 +1387,7 @@ static struct cgroupfs_root *cgroup_root_from_opts(struct cgroup_sb_opts *opts)
 	if (opts->name)
 		strcpy(root->name, opts->name);
 	if (opts->clone_children)
-		set_bit(CGRP_CLONE_CHILDREN, &root->top_cgroup.flags);
+		set_bit(CGRP_CPUSET_CLONE_CHILDREN, &root->top_cgroup.flags);
 	return root;
 }
 
@@ -1550,6 +1575,14 @@ static struct dentry *cgroup_mount(struct file_system_type *fs_type,
 		 * any) is not needed
 		 */
 		cgroup_drop_root(opts.new_root);
+
+		if (((root->flags | opts.flags) & CGRP_ROOT_SANE_BEHAVIOR) &&
+		    root->flags != opts.flags) {
+			pr_err("cgroup: sane_behavior: new mount options should match the existing superblock\n");
+			ret = -EINVAL;
+			goto drop_new_super;
+		}
+
 		/* no subsys rebinding, so refcounts don't change */
 		drop_parsed_module_refcounts(opts.subsys_bits);
 	}
@@ -2232,6 +2265,13 @@ static int cgroup_release_agent_show(struct cgroup *cgrp, struct cftype *cft,
 	return 0;
 }
 
+static int cgroup_sane_behavior_show(struct cgroup *cgrp, struct cftype *cft,
+				     struct seq_file *seq)
+{
+	seq_printf(seq, "%d\n", cgroup_sane_behavior(cgrp));
+	return 0;
+}
+
 /* A buffer size big enough for numbers or short strings */
 #define CGROUP_LOCAL_BUFFER_SIZE 64
 
@@ -2742,6 +2782,32 @@ struct cgroup *cgroup_next_descendant_pre(struct cgroup *pos,
 	return NULL;
 }
 EXPORT_SYMBOL_GPL(cgroup_next_descendant_pre);
+
+/**
+ * cgroup_rightmost_descendant - return the rightmost descendant of a cgroup
+ * @pos: cgroup of interest
+ *
+ * Return the rightmost descendant of @pos.  If there's no descendant,
+ * @pos is returned.  This can be used during pre-order traversal to skip
+ * subtree of @pos.
+ */
+struct cgroup *cgroup_rightmost_descendant(struct cgroup *pos)
+{
+	struct cgroup *last, *tmp;
+
+	WARN_ON_ONCE(!rcu_read_lock_held());
+
+	do {
+		last = pos;
+		/* ->prev isn't RCU safe, walk ->next till the end */
+		pos = NULL;
+		list_for_each_entry_rcu(tmp, &last->children, sibling)
+			pos = tmp;
+	} while (pos);
+
+	return last;
+}
+EXPORT_SYMBOL_GPL(cgroup_rightmost_descendant);
 
 static struct cgroup *cgroup_leftmost_descendant(struct cgroup *pos)
 {
@@ -3657,9 +3723,9 @@ static int cgroup_clone_children_write(struct cgroup *cgrp,
 				     u64 val)
 {
 	if (val)
-		set_bit(CGRP_CLONE_CHILDREN, &cgrp->flags);
+		set_bit(CGRP_CPUSET_CLONE_CHILDREN, &cgrp->flags);
 	else
-		clear_bit(CGRP_CLONE_CHILDREN, &cgrp->flags);
+		clear_bit(CGRP_CPUSET_CLONE_CHILDREN, &cgrp->flags);
 	return 0;
 }
 
@@ -3697,6 +3763,11 @@ static struct cftype files[] = {
 		.name = "cgroup.clone_children",
 		.read_u64 = cgroup_clone_children_read,
 		.write_u64 = cgroup_clone_children_write,
+	},
+	{
+		.name = "cgroup.sane_behavior",
+		.read_seq_string = cgroup_sane_behavior_show,
+		.mode = S_IRUGO,
 	},
 };
 
@@ -3828,7 +3899,7 @@ static long cgroup_create(struct cgroup *parent, struct dentry *dentry,
 		set_bit(CGRP_NOTIFY_ON_RELEASE, &cgrp->flags);
 
 	if (clone_children(parent))
-		set_bit(CGRP_CLONE_CHILDREN, &cgrp->flags);
+		set_bit(CGRP_CPUSET_CLONE_CHILDREN, &cgrp->flags);
 
 	for_each_subsys(root, ss) {
 		struct cgroup_subsys_state *css = ss->create(cgrp);
