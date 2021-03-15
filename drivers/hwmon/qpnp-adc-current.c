@@ -31,7 +31,6 @@
 #include <linux/hwmon-sysfs.h>
 #include <linux/qpnp/qpnp-adc.h>
 #include <linux/platform_device.h>
-#include <linux/wakelock.h>
 
 /* QPNP IADC register definition */
 #define QPNP_IADC_REVISION1				0x0
