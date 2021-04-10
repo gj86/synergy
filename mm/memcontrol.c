@@ -5764,18 +5764,7 @@ static void mem_cgroup_move_task(struct cgroup *cont,
 static int mem_cgroup_allow_attach(struct cgroup *cgrp,
 				 struct cgroup_taskset *tset)
 {
-	const struct cred *cred = current_cred(), *tcred;
-	struct task_struct *task;
-
-	cgroup_taskset_for_each(task, cgrp, tset) {
-		tcred = __task_cred(task);
-
-		if ((current != task) && !capable(CAP_SYS_ADMIN) &&
-		    cred->euid != tcred->uid && cred->euid != tcred->suid)
-			return -EACCES;
-	}
-
-	return 0;
+	return subsys_cgroup_allow_attach(cgrp, tset);
 }
 
 struct cgroup_subsys mem_cgroup_subsys = {
