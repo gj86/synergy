@@ -46,10 +46,13 @@
 #include <linux/swap.h>
 #include <linux/fs.h>
 #include <linux/cpuset.h>
-#include <linux/zcache.h>
 #include <linux/show_mem_notifier.h>
 #include <linux/vmpressure.h>
-#include <linux/powersuspend.h>
+#include <linux/zcache.h>
+#include <linux/poll.h>
+#include <linux/proc_fs.h>
+#include <linux/uidgid.h>
+#include <linux/circ_buf.h>
 
 #define CREATE_TRACE_POINTS
 #include <trace/events/almk.h>
@@ -63,7 +66,6 @@
 #endif
 
 static uint32_t lowmem_debug_level = 1;
-static uint32_t lowmem_auto_oom = 1;
 static int lowmem_adj[6] = {
 	0,
 	1,
@@ -81,22 +83,6 @@ static int lowmem_minfree[6] = {
 	45 * 1024,	/* Content Provider: 	184 MB	*/
 	50 * 1024, /* Empty App: 		204 MB	*/
 };
-static int lowmem_minfree_screen_off[6] = {
-	 4 * 1024,	/* 16 MB */
-	 8 * 1024,	/* 32 MB */
-	16 * 1024,	/* 65 MB */
-	28 * 1024,	/* 114 MB */
-	45 * 1024,	/* 184 MB */
-	50 * 1024, /* 204 MB */
-};
-static int lowmem_minfree_screen_on[6] = {
-	 4 * 1024,	/* 16 MB */
-	 8 * 1024,	/* 32 MB */
-	16 * 1024,	/* 65 MB */
-	28 * 1024,	/* 114 MB */
-	45 * 1024,	/* 184 MB */
-	50 * 1024, /* 204 MB */
-};
 static int lowmem_minfree_size = 6;
 static int lmk_fast_run = 1;
 
@@ -108,10 +94,161 @@ static unsigned long lowmem_deathpending_timeout;
 			pr_info(x);			\
 	} while (0)
 
+
+static DECLARE_WAIT_QUEUE_HEAD(event_wait);
+static DEFINE_SPINLOCK(lmk_event_lock);
+static struct circ_buf event_buffer;
+#define MAX_BUFFERED_EVENTS 8
+#define MAX_TASKNAME 128
+
+struct lmk_event {
+	char taskname[MAX_TASKNAME];
+	pid_t pid;
+	uid_t uid;
+	pid_t group_leader_pid;
+	unsigned long min_flt;
+	unsigned long maj_flt;
+	unsigned long rss_in_pages;
+	short oom_score_adj;
+	short min_score_adj;
+	unsigned long long start_time;
+	struct list_head list;
+};
+
+void handle_lmk_event(struct task_struct *selected, short min_score_adj)
+{
+	int head;
+	int tail;
+	struct lmk_event *events;
+	struct lmk_event *event;
+	int res;
+	long rss_in_pages = -1;
+	struct mm_struct *mm = get_task_mm(selected);
+
+	if (mm) {
+		rss_in_pages = get_mm_rss(mm);
+		mmput(mm);
+	}
+
+	spin_lock(&lmk_event_lock);
+
+	head = event_buffer.head;
+	tail = READ_ONCE(event_buffer.tail);
+
+	/* Do not continue to log if no space remains in the buffer. */
+	if (CIRC_SPACE(head, tail, MAX_BUFFERED_EVENTS) < 1) {
+		spin_unlock(&lmk_event_lock);
+		return;
+	}
+
+	events = (struct lmk_event *) event_buffer.buf;
+	event = &events[head];
+
+	res = get_cmdline(selected, event->taskname, MAX_TASKNAME - 1);
+
+	/* No valid process name means this is definitely not associated with a
+	 * userspace activity.
+	 */
+
+	if (res <= 0 || res >= MAX_TASKNAME) {
+		spin_unlock(&lmk_event_lock);
+		return;
+	}
+
+	event->taskname[res] = '\0';
+	event->pid = selected->pid;
+	event->uid = from_kuid_munged(current_user_ns(), task_uid(selected));
+	if (selected->group_leader)
+		event->group_leader_pid = selected->group_leader->pid;
+	else
+		event->group_leader_pid = -1;
+	event->min_flt = selected->min_flt;
+	event->maj_flt = selected->maj_flt;
+	event->oom_score_adj = selected->signal->oom_score_adj;
+	event->start_time = nsec_to_clock_t(selected->real_start_time.tv_nsec);
+	event->rss_in_pages = rss_in_pages;
+	event->min_score_adj = min_score_adj;
+
+	event_buffer.head = (head + 1) & (MAX_BUFFERED_EVENTS - 1);
+
+	spin_unlock(&lmk_event_lock);
+
+	wake_up_interruptible(&event_wait);
+}
+
+static int lmk_event_show(struct seq_file *s, void *unused)
+{
+	struct lmk_event *events = (struct lmk_event *) event_buffer.buf;
+	int head;
+	int tail;
+	struct lmk_event *event;
+
+	spin_lock(&lmk_event_lock);
+
+	head = event_buffer.head;
+	tail = event_buffer.tail;
+
+	if (head == tail) {
+		spin_unlock(&lmk_event_lock);
+		return -EAGAIN;
+	}
+
+	event = &events[tail];
+
+	seq_printf(s, "%lu %lu %lu %lu %lu %lu %hd %hd %llu\n%s\n",
+		(unsigned long) event->pid, (unsigned long) event->uid,
+		(unsigned long) event->group_leader_pid, event->min_flt,
+		event->maj_flt, event->rss_in_pages, event->oom_score_adj,
+		event->min_score_adj, event->start_time, event->taskname);
+
+	event_buffer.tail = (tail + 1) & (MAX_BUFFERED_EVENTS - 1);
+
+	spin_unlock(&lmk_event_lock);
+	return 0;
+}
+
+static unsigned int lmk_event_poll(struct file *file, poll_table *wait)
+{
+	int ret = 0;
+
+	poll_wait(file, &event_wait, wait);
+	spin_lock(&lmk_event_lock);
+	if (event_buffer.head != event_buffer.tail)
+		ret = POLLIN;
+	spin_unlock(&lmk_event_lock);
+	return ret;
+}
+
+static int lmk_event_open(struct inode *inode, struct file *file)
+{
+	return single_open(file, lmk_event_show, inode->i_private);
+}
+
+static const struct file_operations event_file_ops = {
+	.open = lmk_event_open,
+	.poll = lmk_event_poll,
+	.read = seq_read
+};
+
+static void lmk_event_init(void)
+{
+	struct proc_dir_entry *entry;
+
+	event_buffer.head = 0;
+	event_buffer.tail = 0;
+	event_buffer.buf = kmalloc(
+		sizeof(struct lmk_event) * MAX_BUFFERED_EVENTS, GFP_KERNEL);
+	if (!event_buffer.buf)
+		return;
+	entry = proc_create("lowmemorykiller", 0, NULL, &event_file_ops);
+	if (!entry)
+		pr_err("error creating kernel lmk event file\n");
+}
+
 static atomic_t shift_adj = ATOMIC_INIT(0);
 static short adj_max_shift = 353;
 
-static int vm_pressure_adaptive_start = 85;
+static int vm_pressure_adaptive_start = 90;
 #define VM_PRESSURE_ADAPTIVE_STOP	95
 
 /* User knob to enable/disable adaptive lmk feature */
@@ -171,6 +308,7 @@ static int lmk_vmpressure_notifier(struct notifier_block *nb,
 	if (pressure >= VM_PRESSURE_ADAPTIVE_STOP) {
 		other_file = global_page_state(NR_FILE_PAGES) -
 			global_page_state(NR_SHMEM) -
+			global_page_state(NR_UNEVICTABLE) -
 			total_swapcache_pages();
 		other_free = global_page_state(NR_FREE_PAGES);
 
@@ -184,6 +322,7 @@ static int lmk_vmpressure_notifier(struct notifier_block *nb,
 
 		other_file = global_page_state(NR_FILE_PAGES) -
 			global_page_state(NR_SHMEM) -
+			global_page_state(NR_UNEVICTABLE) -
 			total_swapcache_pages();
 
 		other_free = global_page_state(NR_FREE_PAGES);
@@ -478,8 +617,9 @@ static int lowmem_shrink(struct shrinker *s, struct shrink_control *sc)
 		if (nr_to_scan > 0)
 			mutex_unlock(&scan_mutex);
 
-	if ((min_score_adj == OOM_SCORE_ADJ_MAX + 1) && (nr_to_scan > 0))
-		trace_almk_shrink(0, ret, other_free, other_file, 0);
+		if ((min_score_adj == OOM_SCORE_ADJ_MAX + 1) &&
+			(nr_to_scan > 0))
+			trace_almk_shrink(0, ret, other_free, other_file, 0);
 
 		return rem;
 	}
@@ -619,6 +759,7 @@ static int lowmem_shrink(struct shrinker *s, struct shrink_control *sc)
 		send_sig(SIGKILL, selected, 0);
 		rem -= selected_tasksize;
 		rcu_read_unlock();
+		handle_lmk_event(selected, min_score_adj);
 		/* give the system time to free up the memory */
 		msleep_interruptible(20);
 		trace_almk_shrink(selected_tasksize, ret,
@@ -637,25 +778,6 @@ static int lowmem_shrink(struct shrinker *s, struct shrink_control *sc)
 static struct shrinker lowmem_shrinker = {
 	.shrink = lowmem_shrink,
 	.seeks = DEFAULT_SEEKS * 16
-};
-
-static void low_mem_early_suspend(struct power_suspend *handler)
-{
-	if (lowmem_auto_oom) {
-		memcpy(lowmem_minfree_screen_on, lowmem_minfree, sizeof(lowmem_minfree));
-		memcpy(lowmem_minfree, lowmem_minfree_screen_off, sizeof(lowmem_minfree_screen_off));
-	}
-}
-
-static void low_mem_late_resume(struct power_suspend *handler)
-{
-	if (lowmem_auto_oom)
-		memcpy(lowmem_minfree, lowmem_minfree_screen_on, sizeof(lowmem_minfree_screen_on));
-}
-
-static struct power_suspend low_mem_suspend = {
-	.suspend = low_mem_early_suspend,
-	.resume = low_mem_late_resume,
 };
 
 #ifdef CONFIG_ANDROID_BG_SCAN_MEM
@@ -684,8 +806,8 @@ static int __init lowmem_init(void)
 					&tsk_migration_nb);
 #endif
 	register_shrinker(&lowmem_shrinker);
-	register_power_suspend(&low_mem_suspend);
 	vmpressure_notifier_register(&lmk_vmpr_nb);
+	lmk_event_init();
 	return 0;
 }
 
@@ -871,14 +993,11 @@ module_param_array_named(adj, lowmem_adj, short, &lowmem_adj_size,
 #endif
 module_param_array_named(minfree, lowmem_minfree, uint, &lowmem_minfree_size,
 			 S_IRUGO | S_IWUSR);
-module_param_array_named(minfree_screen_off, lowmem_minfree_screen_off, uint, &lowmem_minfree_size,
-			 S_IRUGO | S_IWUSR);
 module_param_named(debug_level, lowmem_debug_level, uint, S_IRUGO | S_IWUSR);
 module_param_named(lmk_fast_run, lmk_fast_run, int, S_IRUGO | S_IWUSR);
 module_param_named(vm_pressure_adaptive_start, vm_pressure_adaptive_start, int,
 		   S_IRUGO | S_IWUSR);
 module_param_named(lmk_vm_pressure, pressure, ulong, 0444);
-module_param_named(auto_oom, lowmem_auto_oom, uint, S_IRUGO | S_IWUSR);
 
 module_init(lowmem_init);
 module_exit(lowmem_exit);
