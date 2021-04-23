@@ -133,6 +133,7 @@ mem_used_max      WO    reset the `mem_used_max' counter (see later)
 mem_limit         WO    specifies the maximum amount of memory ZRAM can use
                         to store the compressed data
 compact           WO    trigger memory compaction
+debug_stat        RO    this file is used for zram debugging purposes
 
 
 
