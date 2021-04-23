@@ -798,7 +798,7 @@ compress_again:
 		goto out;
 	}
 
-	zstrm = zcomp_strm_find(zram->comp);
+	zstrm = zcomp_stream_get(zram->comp);
 	ret = zcomp_compress(zram->comp, zstrm, uncmem, &clen);
 	if (!is_partial_io(bvec)) {
 		kunmap_atomic(user_mem);
@@ -837,7 +837,7 @@ compress_again:
 				__GFP_HIGHMEM);
 
 	if (!handle) {
-		zcomp_strm_release(zram->comp, zstrm);
+		zcomp_stream_put(zram->comp);
 		zstrm = NULL;
 
 		handle = zs_malloc(meta->mem_pool, clen,
@@ -872,7 +872,7 @@ compress_again:
 		memcpy(cmem, src, clen);
 	}
 
-	zcomp_strm_release(zram->comp, zstrm);
+	zcomp_stream_put(zram->comp);
 	zstrm = NULL;
 	zs_unmap_object(meta->mem_pool, handle);
 
@@ -892,7 +892,7 @@ compress_again:
 	atomic64_inc(&zram->stats.pages_stored);
 out:
 	if (zstrm)
-		zcomp_strm_release(zram->comp, zstrm);
+		zcomp_stream_put(zram->comp);
 	if (is_partial_io(bvec))
 		kfree(uncmem);
 	return ret;
