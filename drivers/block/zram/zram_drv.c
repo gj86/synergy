@@ -1141,7 +1141,6 @@ static ssize_t disksize_store(struct device *dev,
 	zram->comp = comp;
 	zram->disksize = disksize;
 	set_capacity(zram->disk, zram->disksize >> SECTOR_SHIFT);
-	up_write(&zram->init_lock);
 
 	/*
 	 * Revalidate disk out of the init_lock to avoid lockdep splat.
@@ -1149,6 +1148,7 @@ static ssize_t disksize_store(struct device *dev,
 	 * so that revalidate_disk always sees up-to-date capacity.
 	 */
 	revalidate_disk(zram->disk);
+	up_write(&zram->init_lock);
 
 	return len;
 
