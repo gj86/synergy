@@ -31,6 +31,7 @@ enum freezer_state {
 struct freezer {
 	struct cgroup_subsys_state css;
 	enum freezer_state state;
+	int killable; /* frozen process can be killed or not*/
 	spinlock_t lock; /* protects _writes_ to state */
 };
 
@@ -56,6 +57,17 @@ bool cgroup_freezing(struct task_struct *task)
 	rcu_read_lock();
 	state = task_freezer(task)->state;
 	ret = state == CGROUP_FREEZING || state == CGROUP_FROZEN;
+	rcu_read_unlock();
+
+	return ret;
+}
+
+bool cgroup_freezer_killable(struct task_struct *task)
+{
+	bool ret;
+
+	rcu_read_lock();
+	ret = task_freezer(task)->killable == 1;
 	rcu_read_unlock();
 
 	return ret;
@@ -361,11 +373,57 @@ static int freezer_write(struct cgroup *cgroup,
 	return retval;
 }
 
+static u64 freezer_killable_read_u64(struct cgroup *cgroup,
+				     struct cftype *cft)
+{
+	struct freezer *freezer = cgroup_freezer(cgroup);
+
+	return freezer->killable;
+}
+
+static int freezer_killable_write_u64(struct cgroup *cgroup, struct cftype *cft, u64 val)
+{
+	struct freezer *freezer;
+
+	if (val > 1)
+		return -EINVAL;
+
+	if (!cgroup_lock_live_group(cgroup))
+		return -ENODEV;
+
+	freezer = cgroup_freezer(cgroup);
+	if (val == freezer->killable)
+		goto out;
+
+	spin_lock_irq(&freezer->lock);
+	if (val == 1)
+		freezer->killable = 1;
+	else
+		freezer->killable = 0;
+
+	/*
+	 * Let __refrigerator spin once for each task to set it into the
+	 * appropriate state.
+	 */
+	unfreeze_cgroup(cgroup, freezer);
+	spin_unlock_irq(&freezer->lock);
+
+out:
+	cgroup_unlock();
+
+	return 0;
+}
+
 static struct cftype files[] = {
 	{
 		.name = "state",
 		.read_seq_string = freezer_read,
 		.write_string = freezer_write,
+	},
+	{
+		.name = "killable",
+		.write_u64 = freezer_killable_write_u64,
+		.read_u64 = freezer_killable_read_u64,
 	},
 };
 
