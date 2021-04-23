@@ -13,12 +13,3 @@ config ZRAM
 	  disks and maybe many more.
 
 	  See zram.txt for more information.
-
-config ZRAM_LZO_COMPRESS
-	bool "Enable LZO algorithm support"
-	depends on ZRAM
-	select CRYPTO_LZ4
-	default n
-	help
-	  This option enables LZO compression algorithm support. Compression
-	  algorithm can be changed using `comp_algorithm' device attribute.
