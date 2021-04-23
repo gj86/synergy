@@ -28,8 +28,6 @@
 #include <linux/backing-dev.h>
 #include <linux/string.h>
 #include <linux/vmalloc.h>
-#include <linux/ratelimit.h>
-#include <linux/show_mem_notifier.h>
 #include <linux/err.h>
 #include <linux/idr.h>
 #include <linux/sysfs.h>
@@ -43,12 +41,6 @@ static DEFINE_MUTEX(zram_index_mutex);
 static int zram_major;
 static const char *default_compressor = "lz4";
 
-/*
- * We don't need to see memory allocation errors more than once every 1
- * second to know that a problem is occurring.
- */
-#define ALLOC_ERROR_LOG_RATE_MS 1000
-
 /* Module params (documentation at end) */
 static unsigned int num_devices = 1;
 
@@ -58,48 +50,6 @@ static inline bool init_done(struct zram *zram)
 {
 	return zram->disksize;
 }
-
-static int zram_show_cb(int id, void *ptr, void *data)
-{
-	struct zram *zram = (struct zram *)ptr;
-	struct zram_meta *meta = zram->meta;
-
-	if (!down_read_trylock(&zram->init_lock))
-		return 0;
-
-	if (init_done(zram)) {
-		u64 val;
-		u64 data_size;
-		u64 orig_data_size;
-
-		val = zs_get_total_pages(meta->mem_pool);
-		data_size = atomic64_read(&zram->stats.compr_data_size);
-		orig_data_size = atomic64_read(&zram->stats.pages_stored);
-		pr_info("Zram[%d] mem_used_total = %llu\n", id,
-						val << PAGE_SHIFT);
-		pr_info("Zram[%d] compr_data_size = %llu\n", id,
-			(unsigned long long)data_size);
-		pr_info("Zram[%d] orig_data_size = %llu\n", id,
-			(unsigned long long)orig_data_size);
-	}
-
-	up_read(&zram->init_lock);
-
-	return 0;
-}
-
-static int zram_show_mem_notifier(struct notifier_block *nb,
-				unsigned long action,
-				void *data)
-{
-	idr_for_each(&zram_index_idr, &zram_show_cb, NULL);
-
-	return 0;
-}
-
-static struct notifier_block zram_show_mem_notifier_block = {
-	.notifier_call = zram_show_mem_notifier
-};
 
 static inline struct zram *dev_to_zram(struct device *dev)
 {
@@ -1393,7 +1343,6 @@ static int __init zram_init(void)
 		num_devices--;
 	}
 
-	show_mem_notifier_register(&zram_show_mem_notifier_block);
 	return 0;
 
 out_error:
