@@ -34,6 +34,7 @@
 #include <linux/regulator/consumer.h>
 #include <asm/mach-types.h>
 #include <linux/device.h>
+#include <linux/pm_runtime.h>
 /* #include <mach/msm8974-gpio.h> */
 #include <linux/of_gpio.h>
 #include <linux/firmware.h>
@@ -2135,7 +2136,8 @@ static int cypress_touchkey_suspend(struct device *dev)
 	int ret = 0;
 
 	info->is_powering_on = true;
-	disable_irq(info->irq);
+	if (!pm_runtime_status_suspended(dev))
+		disable_irq(info->irq);
 	if (info->pdata->gpio_led_en)
 		cypress_touchkey_con_hw(info, false);
 	cypress_power_onoff(info, 0);	
@@ -2177,7 +2179,8 @@ static int cypress_touchkey_resume(struct device *dev)
 		msleep(30);
 	}
 
-	enable_irq(info->irq);
+	if (!pm_runtime_status_suspended(dev))
+		enable_irq(info->irq);
 
 	info->is_powering_on = false;
 	return ret;
