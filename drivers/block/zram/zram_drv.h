@@ -91,13 +91,9 @@ struct zram_stats {
 	atomic_long_t max_used_pages;	/* no. of maximum pages stored */
 };
 
-struct zram_meta {
+struct zram {
 	struct zram_table_entry *table;
 	struct zs_pool *mem_pool;
-};
-
-struct zram {
-	struct zram_meta *meta;
 	struct zcomp *comp;
 	struct gendisk *disk;
 	/* Prevent concurrent execution of device init */
