@@ -779,7 +779,7 @@ out:
 
 static int __zram_bvec_write(struct zram *zram, struct bio_vec *bvec, u32 index)
 {
-	int ret;
+	int ret = 0;
 	unsigned long alloced_pages;
 	unsigned long handle = 0;
 	unsigned int comp_len = 0;
@@ -883,7 +883,7 @@ out:
 
 	/* Update stats */
 	atomic64_inc(&zram->stats.pages_stored);
-	return 0;
+	return ret;
 }
 
 static int zram_bvec_write(struct zram *zram, struct bio_vec *bvec,
@@ -965,6 +965,11 @@ static void zram_bio_discard(struct zram *zram, u32 index,
 	}
 }
 
+/*
+ * Returns errno if it has some problem. Otherwise return 0 or 1.
+ * Returns 0 if IO request was done synchronously
+ * Returns 1 if IO request was successfully submitted.
+ */
 static int zram_bvec_rw(struct zram *zram, struct bio_vec *bvec, u32 index,
 			int offset, int rw)
 {
@@ -985,7 +990,7 @@ static int zram_bvec_rw(struct zram *zram, struct bio_vec *bvec, u32 index,
 
 	generic_end_io_acct(rw, &zram->disk->part0, start_time);
 
-	if (unlikely(ret)) {
+	if (unlikely(ret < 0)) {
 		if (rw == READ)
 			atomic64_inc(&zram->stats.failed_reads);
 		else
