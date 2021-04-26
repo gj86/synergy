@@ -1329,7 +1329,7 @@ static void __zram_make_request(struct zram *zram, struct bio *bio)
 
 	rw = bio_data_dir(bio);
 	bio_for_each_segment(bvec, bio, i) {
-		struct bio_vec bv = bvec;
+		struct bio_vec bv = *bvec;
 		unsigned int unwritten = bvec->bv_len;
 
 		do {
