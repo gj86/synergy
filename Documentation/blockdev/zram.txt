@@ -134,7 +134,7 @@ mem_limit         WO    specifies the maximum amount of memory ZRAM can use
                         to store the compressed data
 compact           WO    trigger memory compaction
 debug_stat        RO    this file is used for zram debugging purposes
-backing_dev	  RW	set up backend storage for zram to write out
+backing_dev		  RW	set up backend storage for zram to write out
 
 
 
@@ -185,7 +185,7 @@ line of text and contains the following stats separated by whitespace:
  same_pages       the number of same element filled pages written to this disk.
                   No memory is allocated for such pages.
  pages_compacted  the number of pages freed during compaction
- huge_pages	  the number of incompressible pages
+ huge_pages	      the number of incompressible pages
 
 9) Deactivate:
 	swapoff /dev/zram0
