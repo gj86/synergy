@@ -44,7 +44,7 @@ static void f2fs_read_end_io(struct bio *bio, int err)
 		}
 	}
 
-	__bio_for_each_segment(bvec, bio, i, 0) {
+	bio_for_each_segment_all(bvec, bio, i) {
 		struct page *page = bvec->bv_page;
 
 		if (!err) {
@@ -65,7 +65,7 @@ static void f2fs_write_end_io(struct bio *bio, int err)
 	struct bio_vec *bvec;
 	int i;
 
-	__bio_for_each_segment(bvec, bio, i, 0) {
+	bio_for_each_segment_all(bvec, bio, i) {
 		struct page *page = bvec->bv_page;
 
 		fscrypt_pullback_bio_page(&page, true);
@@ -142,7 +142,7 @@ static bool __has_merged_page(struct f2fs_bio_info *io, struct inode *inode,
 	if (!inode && !page && !ino)
 		return true;
 
-	__bio_for_each_segment(bvec, io->bio, i, 0) {
+	bio_for_each_segment_all(bvec, io->bio, i) {
 
 		if (bvec->bv_page->mapping)
 			target = bvec->bv_page;
