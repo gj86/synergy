@@ -628,6 +628,12 @@ out:
 	return error;
 }
 
+char *file_path(struct file *filp, char *buf, int buflen)
+{
+	return d_path(&filp->f_path, buf, buflen);
+}
+EXPORT_SYMBOL(file_path);
+
 /*
  * You have to be very careful that these write
  * counts get cleaned up in error cases and

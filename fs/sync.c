@@ -264,7 +264,7 @@ static int do_fsync(unsigned int fd, int datasync)
 #ifdef CONFIG_ASYNC_FSYNC
 		ktime_t fsync_t, fsync_diff;
 		char pathname[256], *path;
-		path = d_path(&(file->f_path), pathname, sizeof(pathname));
+		path = file_path(file, pathname, sizeof(pathname));
 		if (IS_ERR(path))
 			path = "(unknown)";
 		else if (async_fsync(file, fd)) {

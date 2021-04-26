@@ -94,7 +94,7 @@ int sec_check_execpath(struct mm_struct *mm, char *denypath)
 		goto out;
 	}
 
-	path = d_path(&exe_file->f_path, pathbuf, PATH_MAX);
+	path = file_path(exe_file, pathbuf, PATH_MAX);
 	if (IS_ERR(path)) {
 		PRINT_LOG("Error get path..\n");
 		goto out;

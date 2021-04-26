@@ -48,8 +48,7 @@ static int notify_exec(void)
 	if (vma) {
 		char *buf = (char *) __get_free_page(GFP_KERNEL);
 		if (buf) {
-			char *path = d_path(&vma->vm_file->f_path,
-					    buf, PAGE_SIZE);
+			char *path = path = file_path(vma->vm_file, buf, PAGE_SIZE);
 			if (!IS_ERR(path)) {
 				sim_notify_exec(path);
 				retval = 1;

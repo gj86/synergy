@@ -5462,7 +5462,7 @@ static int get_bitmap_file(struct mddev * mddev, void __user * arg)
 	if (!buf)
 		goto out;
 
-	ptr = d_path(&mddev->bitmap->file->f_path, buf, sizeof(file->pathname));
+	ptr = file_path(mddev->bitmap->file, buf, sizeof(file->pathname));
 	if (IS_ERR(ptr))
 		goto out;
 

@@ -3542,7 +3542,7 @@ static int __init fsg_bind(struct usb_gadget *gadget)
 		if (fsg_lun_is_open(curlun)) {
 			p = NULL;
 			if (pathbuf) {
-				p = d_path(&curlun->filp->f_path,
+				p = file_path(curlun->filp,
 					   pathbuf, PATH_MAX);
 				if (IS_ERR(p))
 					p = NULL;

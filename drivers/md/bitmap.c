@@ -779,7 +779,7 @@ static void bitmap_file_kick(struct bitmap *bitmap)
 		if (bitmap->file) {
 			path = kmalloc(PAGE_SIZE, GFP_KERNEL);
 			if (path)
-				ptr = d_path(&bitmap->file->f_path, path,
+				ptr = file_path(bitmap->storage.file,
 					     PAGE_SIZE);
 
 			printk(KERN_ALERT
