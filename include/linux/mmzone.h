@@ -159,9 +159,6 @@ enum zone_stat_item {
 	NR_CMA_UNEVICTABLE,
 #endif
 	NR_SWAPCACHE,
-#ifdef CONFIG_UKSM
-	NR_UKSM_ZERO_PAGES,
-#endif
 	NR_VM_ZONE_STAT_ITEMS };
 
 /*
